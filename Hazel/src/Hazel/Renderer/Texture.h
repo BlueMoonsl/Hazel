@@ -1,9 +1,10 @@
-#pragma once
+﻿#pragma once
 
 #include "Hazel/Core/Base.h"
 
 namespace Hazel {
 
+	// 纹理格式
 	enum class HAZEL_API TextureFormat
 	{
 		None = 0,

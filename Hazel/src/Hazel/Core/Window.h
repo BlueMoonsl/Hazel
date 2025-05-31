@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <functional>
 
@@ -7,6 +7,7 @@
 
 namespace Hazel {
 
+	// 窗口信息结构体
 	struct WindowProps
 	{
 		std::string Title;
@@ -21,7 +22,7 @@ namespace Hazel {
 		}
 	};
 
-	// Interface representing a desktop system based Window
+	// 桌面系统窗口接口，所有平台窗口需实现此接口
 	class HAZEL_API Window
 	{
 	public:
@@ -34,12 +35,12 @@ namespace Hazel {
 		virtual unsigned int GetWidth() const = 0;
 		virtual unsigned int GetHeight() const = 0;
 
-		// Window attributes
-		virtual void SetEventCallback(const EventCallbackFn& callback) = 0;
-		virtual void SetVSync(bool enabled) = 0;
-		virtual bool IsVSync() const = 0;
+		// 窗口属性
+		virtual void SetEventCallback(const EventCallbackFn& callback) = 0;		// 设置事件回调函数
+		virtual void SetVSync(bool enabled) = 0;								// 设置垂直同步
+		virtual bool IsVSync() const = 0;										// 是否启用垂直同步
 
-		virtual void* GetNativeWindow() const = 0;
+		virtual void* GetNativeWindow() const = 0;								// 获取原生窗口指针（如 GLFWwindow*）
 
 		static Window* Create(const WindowProps& props = WindowProps());
 	};

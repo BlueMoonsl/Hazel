@@ -1,9 +1,10 @@
-#pragma once
+﻿#pragma once
 
 namespace Hazel {
 
 	using RendererID = unsigned int;
 
+	// API类型
 	enum class HAZEL_API RendererAPIType
 	{
 		None,

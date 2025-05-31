@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Hazel/Core/Window.h"
 
@@ -17,7 +17,7 @@ namespace Hazel {
 		inline unsigned int GetWidth() const override { return m_Data.Width; }
 		inline unsigned int GetHeight() const override { return m_Data.Height; }
 
-		// Window attributes
+		// 窗口属性
 		inline void SetEventCallback(const EventCallbackFn& callback) override { m_Data.EventCallback = callback; }
 		void SetVSync(bool enabled);
 		bool IsVSync() const;

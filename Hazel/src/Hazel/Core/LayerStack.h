@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Hazel/Core/Base.h"
 #include "Layer.h"
@@ -13,6 +13,7 @@ namespace Hazel {
 		LayerStack();
 		~LayerStack();
 
+		// 普通Layer用于游戏或应用的逻辑，OverLayer用于渲染在所有Layer之上的U内容，如UI、调试窗口等
 		void PushLayer(Layer* layer);
 		void PushOverlay(Layer* overlay);
 		void PopLayer(Layer* layer);

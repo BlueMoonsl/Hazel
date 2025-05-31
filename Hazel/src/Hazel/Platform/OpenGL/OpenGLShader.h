@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Hazel/Renderer/Shader.h"
 #include <Glad/glad.h>

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Event.h"
 
@@ -6,6 +6,7 @@
 
 namespace Hazel {
 
+	// 键盘基事件
 	class HAZEL_API KeyEvent : public Event
 	{
 	public:
@@ -19,6 +20,7 @@ namespace Hazel {
 		int m_KeyCode;
 	};
 
+	// 按键按下事件
 	class HAZEL_API KeyPressedEvent : public KeyEvent
 	{
 	public:
@@ -39,6 +41,7 @@ namespace Hazel {
 		int m_RepeatCount;
 	};
 
+	// 按键释放事件
 	class HAZEL_API KeyReleasedEvent : public KeyEvent
 	{
 	public:
@@ -55,6 +58,7 @@ namespace Hazel {
 		EVENT_CLASS_TYPE(KeyReleased)
 	};
 
+	// 可打印字符按键事件
 	class HAZEL_API KeyTypedEvent : public KeyEvent
 	{
 	public:

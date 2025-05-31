@@ -1,4 +1,4 @@
-#include "hzpch.h"
+﻿#include "hzpch.h"
 #include "OpenGLTexture.h"
 
 #include "Hazel/Renderer/RendererAPI.h"

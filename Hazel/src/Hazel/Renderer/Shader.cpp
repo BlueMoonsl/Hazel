@@ -1,10 +1,11 @@
-#include "hzpch.h"
+﻿#include "hzpch.h"
 #include "Shader.h"
 
 #include "Hazel/Platform/OpenGL/OpenGLShader.h"
 
 namespace Hazel {
 
+	// 创建不同API的shader
 	Shader* Shader::Create(const std::string& filepath)
 	{
 		switch (RendererAPI::Current())

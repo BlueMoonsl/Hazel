@@ -1,4 +1,4 @@
-#include "hzpch.h"
+﻿#include "hzpch.h"
 #include "Hazel/Renderer/RendererAPI.h"
 
 #include <Glad/glad.h>

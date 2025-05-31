@@ -1,4 +1,4 @@
-#include "hzpch.h"
+﻿#include "hzpch.h"
 #include "Texture.h"
 
 #include "Hazel/Renderer/RendererAPI.h"
@@ -6,6 +6,7 @@
 
 namespace Hazel {
 
+	// 创建对应API的texture对象
 	Texture2D* Texture2D::Create(TextureFormat format, unsigned int width, unsigned int height)
 	{
 		switch (RendererAPI::Current())
