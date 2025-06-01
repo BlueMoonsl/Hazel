@@ -101,8 +101,7 @@ project "Sandbox"
 
 	links 
 	{ 
-		"Hazel",
-        "Hazel/vendor/assimp/win64/assimp-vc143-mt.lib"
+		"Hazel"
     }
     
 	files 
@@ -133,13 +132,28 @@ project "Sandbox"
         defines "HZ_DEBUG"
         buildoptions "/MDd"
         symbols "on"
-                
+               
+        links
+		{
+			"Hazel/vendor/assimp/bin/Debug/assimp-vc143-mtd.lib"
+		}
+
     filter "configurations:Release"
         defines "HZ_RELEASE"
         buildoptions "/MD"
         optimize "on"
 
+        links
+		{
+			"Hazel/vendor/assimp/bin/Release/assimp-vc143-mt.lib"
+		}
+
     filter "configurations:Dist"
         defines "HZ_DIST"
         buildoptions "/MD"
         optimize "on"
+
+        links
+		{
+			"Hazel/vendor/assimp/bin/Release/assimp-vc143-mt.lib"
+		}

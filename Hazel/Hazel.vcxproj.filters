@@ -25,6 +25,9 @@
     <Filter Include="Hazel\Renderer">
       <UniqueIdentifier>{5F4907E6-4B17-FBEB-34AB-6B122018D750}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Hazel\Vendor">
+      <UniqueIdentifier>{B6C50B25-A228-9BC9-4BAE-D37F37F0664C}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Hazel.h" />
@@ -32,6 +35,9 @@
       <Filter>Hazel\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\Hazel\Core\Base.h">
+      <Filter>Hazel\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Hazel\Core\Buffer.h">
       <Filter>Hazel\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\Hazel\Core\Events\ApplicationEvent.h">
@@ -49,6 +55,9 @@
     <ClInclude Include="src\Hazel\Core\Input.h">
       <Filter>Hazel\Core</Filter>
     </ClInclude>
+    <ClInclude Include="src\Hazel\Core\KeyCodes.h">
+      <Filter>Hazel\Core</Filter>
+    </ClInclude>
     <ClInclude Include="src\Hazel\Core\Layer.h">
       <Filter>Hazel\Core</Filter>
     </ClInclude>
@@ -59,6 +68,9 @@
       <Filter>Hazel\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\Hazel\Core\Platform.h">
+      <Filter>Hazel\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Hazel\Core\TimeStep.h">
       <Filter>Hazel\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\Hazel\Core\Window.h">
@@ -79,6 +91,9 @@
     <ClInclude Include="src\Hazel\Platform\OpenGL\OpenGLShader.h">
       <Filter>Hazel\Platform\OpenGL</Filter>
     </ClInclude>
+    <ClInclude Include="src\Hazel\Platform\OpenGL\OpenGLShaderUniform.h">
+      <Filter>Hazel\Platform\OpenGL</Filter>
+    </ClInclude>
     <ClInclude Include="src\Hazel\Platform\OpenGL\OpenGLTexture.h">
       <Filter>Hazel\Platform\OpenGL</Filter>
     </ClInclude>
@@ -91,7 +106,16 @@
     <ClInclude Include="src\Hazel\Renderer\Buffer.h">
       <Filter>Hazel\Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="src\Hazel\Renderer\Camera.h">
+      <Filter>Hazel\Renderer</Filter>
+    </ClInclude>
     <ClInclude Include="src\Hazel\Renderer\Framebuffer.h">
+      <Filter>Hazel\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Hazel\Renderer\Material.h">
+      <Filter>Hazel\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Hazel\Renderer\Mesh.h">
       <Filter>Hazel\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\Hazel\Renderer\RenderCommandQueue.h">
@@ -106,13 +130,13 @@
     <ClInclude Include="src\Hazel\Renderer\Shader.h">
       <Filter>Hazel\Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="src\Hazel\Renderer\ShaderUniform.h">
+      <Filter>Hazel\Renderer</Filter>
+    </ClInclude>
     <ClInclude Include="src\Hazel\Renderer\Texture.h">
       <Filter>Hazel\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\hzpch.h" />
-    <ClInclude Include="src\Hazel\Core\KeyCodes.h" />
-    <ClInclude Include="src\Hazel\Renderer\Camera.h" />
-    <ClInclude Include="src\Hazel\Renderer\Mesh.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Hazel\Core\Application.cpp">
@@ -128,6 +152,9 @@
       <Filter>Hazel\Core</Filter>
     </ClCompile>
     <ClCompile Include="src\Hazel\Core\Log.cpp">
+      <Filter>Hazel\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Hazel\Core\TimeStep.cpp">
       <Filter>Hazel\Core</Filter>
     </ClCompile>
     <ClCompile Include="src\Hazel\Core\Window.cpp">
@@ -151,6 +178,9 @@
     <ClCompile Include="src\Hazel\Platform\OpenGL\OpenGLShader.cpp">
       <Filter>Hazel\Platform\OpenGL</Filter>
     </ClCompile>
+    <ClCompile Include="src\Hazel\Platform\OpenGL\OpenGLShaderUniform.cpp">
+      <Filter>Hazel\Platform\OpenGL</Filter>
+    </ClCompile>
     <ClCompile Include="src\Hazel\Platform\OpenGL\OpenGLTexture.cpp">
       <Filter>Hazel\Platform\OpenGL</Filter>
     </ClCompile>
@@ -161,6 +191,18 @@
       <Filter>Hazel\Platform\Windows</Filter>
     </ClCompile>
     <ClCompile Include="src\Hazel\Renderer\Buffer.cpp">
+      <Filter>Hazel\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Hazel\Renderer\Camera.cpp">
+      <Filter>Hazel\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Hazel\Renderer\Framebuffer.cpp">
+      <Filter>Hazel\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Hazel\Renderer\Material.cpp">
+      <Filter>Hazel\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Hazel\Renderer\Mesh.cpp">
       <Filter>Hazel\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="src\Hazel\Renderer\RenderCommandQueue.cpp">
@@ -175,10 +217,9 @@
     <ClCompile Include="src\Hazel\Renderer\Texture.cpp">
       <Filter>Hazel\Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="src\Hazel\Vendor\stb_image.cpp">
+      <Filter>Hazel\Vendor</Filter>
+    </ClCompile>
     <ClCompile Include="src\hzpch.cpp" />
-    <ClCompile Include="src\Hazel\Renderer\Camera.cpp" />
-    <ClCompile Include="src\Hazel\Renderer\Framebuffer.cpp" />
-    <ClCompile Include="src\Hazel\Renderer\Mesh.cpp" />
-    <ClCompile Include="src\Hazel\Vendor\stb_image.cpp" />
   </ItemGroup>
 </Project>

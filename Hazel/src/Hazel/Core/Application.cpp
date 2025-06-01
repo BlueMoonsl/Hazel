@@ -23,6 +23,7 @@ namespace Hazel {
 
 		m_Window = std::unique_ptr<Window>(Window::Create());
 		m_Window->SetEventCallback(BIND_EVENT_FN(OnEvent));
+		m_Window->SetVSync(false);
 
 		m_ImGuiLayer = new ImGuiLayer("ImGui");
 		PushOverlay(m_ImGuiLayer);
@@ -56,6 +57,7 @@ namespace Hazel {
 		ImGui::Text("Vendor: %s", caps.Vendor.c_str());
 		ImGui::Text("Renderer: %s", caps.Renderer.c_str());
 		ImGui::Text("Version: %s", caps.Version.c_str());
+		ImGui::Text("Frame Time: %.2fms\n", m_TimeStep.GetMilliseconds());
 		ImGui::End();
 
 		for (Layer* layer : m_LayerStack)
@@ -72,7 +74,7 @@ namespace Hazel {
 			if (!m_Minimized)
 			{
 				for (Layer* layer : m_LayerStack)
-					layer->OnUpdate();
+					layer->OnUpdate(m_TimeStep);
 
 				// Render ImGui on render thread
 				Application* app = this;
@@ -81,6 +83,10 @@ namespace Hazel {
 				Renderer::Get().WaitAndRender();
 			}
 			m_Window->OnUpdate();
+
+			float time = GetTime();
+			m_TimeStep = time - m_LastFrameTime;
+			m_LastFrameTime = time;
 		}
 		OnShutdown();
 	}
@@ -146,4 +152,8 @@ namespace Hazel {
 		return std::string();
 	}
 
+	float Application::GetTime() const
+	{
+		return (float)glfwGetTime();
+	}
 }

@@ -16,11 +16,11 @@ namespace Hazel {
 	Camera::Camera(const glm::mat4& projectionMatrix)
 		: m_ProjectionMatrix(projectionMatrix)
 	{
-		m_PanSpeed = 0.0015f;									// 平移速度
-		m_RotationSpeed = 0.002f;								// 旋转速度
-		m_ZoomSpeed = 0.2f;										// 缩放速度
+		m_PanSpeed = 0.15f;
+		m_RotationSpeed = 0.3f;
+		m_ZoomSpeed = 1.0f;									
 
-		m_Position = { -100, 100, 100 };						// 相机位置
+		m_Position = { -5, 5, 5 };					
 		m_Rotation = glm::vec3(90.0f, 0.0f, 0.0f);				// 相机旋转
 
 		m_FocalPoint = glm::vec3(0.0f);							// 焦点位置
@@ -34,7 +34,7 @@ namespace Hazel {
 	{
 	}
 
-	void Camera::Update()
+	void Camera::Update(TimeStep ts)
 	{	
 		// 按下左alt启用鼠标控制
 		if (Input::IsKeyPressed(GLFW_KEY_LEFT_ALT))
@@ -42,6 +42,8 @@ namespace Hazel {
 			const glm::vec2& mouse{ Input::GetMouseX(), Input::GetMouseY() };
 			glm::vec2 delta = mouse - m_InitialMousePosition;
 			m_InitialMousePosition = mouse;
+
+			delta *= ts.GetSeconds();
 
 			if (Input::IsMouseButtonPressed(GLFW_MOUSE_BUTTON_MIDDLE))
 				MousePan(delta);
@@ -57,6 +59,8 @@ namespace Hazel {
 		glm::quat orientation = GetOrientation();
 		m_Rotation = glm::eulerAngles(orientation) * (180.0f / (float)M_PI);
 		m_ViewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 1)) * glm::toMat4(glm::conjugate(orientation)) * glm::translate(glm::mat4(1.0f), -m_Position);
+		m_ViewMatrix = glm::translate(glm::mat4(1.0f), m_Position) * glm::toMat4(orientation);
+		m_ViewMatrix = glm::inverse(m_ViewMatrix);
 	}
 
 	// 鼠标平移

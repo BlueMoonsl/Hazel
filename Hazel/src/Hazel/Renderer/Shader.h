@@ -1,25 +1,28 @@
 ﻿#pragma once
 
 #include "Hazel/Core/Base.h"
+#include "Hazel/Core/Buffer.h"
+
 #include "Hazel/Renderer/Renderer.h"
+#include "Hazel/Renderer/ShaderUniform.h"
 
 #include <string>
 #include <glm/glm.hpp>
 
 namespace Hazel
 {
-	struct HAZEL_API ShaderUniform
+	struct ShaderUniform
 	{
 		
 	};
 
-	struct HAZEL_API ShaderUniformCollection
+	struct ShaderUniformCollection
 	{
 
 	};
 
 	// Uniform变量类型枚举，描述支持的Uniform数据类型
-	enum class HAZEL_API UniformType
+	enum class UniformType
 	{
 		None = 0,     // 无类型
 		Float,        // 单精度浮点
@@ -33,7 +36,7 @@ namespace Hazel
 	};
 
 	// 描述单个Uniform变量的声明信息
-	struct HAZEL_API UniformDecl
+	struct UniformDecl
 	{
 		UniformType Type;         // Uniform类型
 		std::ptrdiff_t Offset;    // 在缓冲区中的字节偏移
@@ -41,7 +44,7 @@ namespace Hazel
 	};
 
 	// Uniform缓冲区的抽象，存储Uniform数据和声明（仅CPU侧，与OpenGL UBO无关）
-	struct HAZEL_API UniformBuffer
+	struct UniformBuffer
 	{
 		byte* Buffer;                        // 原始数据缓冲区
 		std::vector<UniformDecl> Uniforms;   // Uniform声明列表
@@ -112,9 +115,10 @@ namespace Hazel
 	};
 
 	// Shader类：抽象着色器对象，定义着色器的基本操作接口
-	class HAZEL_API Shader
+	class Shader
 	{
 	public:
+		using ShaderReloadedCallback = std::function<void()>;
 
 		virtual void Reload() = 0;		// 重新加载着色
 		virtual void Bind() = 0;		// 绑定着色器到渲染管线
@@ -123,11 +127,25 @@ namespace Hazel
 
 		virtual void SetFloat(const std::string& name, float value) = 0;				// 临时接口：设置float类型Uniform
 		virtual void SetMat4(const std::string& name, const glm::mat4& value) = 0;		// 临时接口：设置mat4类型Uniform
+		virtual void SetMat4FromRenderThread(const std::string& name, const glm::mat4& value) = 0;
 
-		virtual const std::string& GetName() const = 0;			// 获取着色器名称
+		virtual const std::string& GetName() const = 0;					// 获取着色器名称
 
-		static Shader* Create(const std::string& filepath);		// 创建Shader实例，filepath为着色器文件路径
-		static std::vector<Shader*> s_AllShaders;				// 临时全局着色器列表（在资源管理器完善前使用）
+		static Shader* Create(const std::string& filepath);				// 创建Shader实例，filepath为着色器文件路径
+		
+		virtual void SetVSMaterialUniformBuffer(Buffer buffer) = 0;		// 设置顶点着色器材质Uniform缓冲区
+		virtual void SetPSMaterialUniformBuffer(Buffer buffer) = 0;		// 设置片段着色器材质Uniform缓冲区
+
+		virtual const ShaderUniformBufferList& GetVSRendererUniforms() const = 0;				// 获取顶点着色器渲染器Uniform列表
+		virtual const ShaderUniformBufferList& GetPSRendererUniforms() const = 0;				// 获取片段着色器渲染器Uniform列表
+		virtual const ShaderUniformBufferDeclaration& GetVSMaterialUniformBuffer() const = 0;   // 获取顶点着色器材质Uniform缓冲区声明
+		virtual const ShaderUniformBufferDeclaration& GetPSMaterialUniformBuffer() const = 0;   // 获取片段着色器材质Uniform缓冲区声明
+
+		virtual const ShaderResourceList& GetResources() const = 0;		// 获取着色器资源列表
+
+		virtual void AddShaderReloadedCallback(const ShaderReloadedCallback& callback) = 0;		// 添加着色器重新加载回调
+
+		static std::vector<Shader*> s_AllShaders;						// 临时全局着色器列表（在资源管理器完善前使用）
 	};
 
 }

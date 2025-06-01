@@ -6,6 +6,7 @@
 
 #include "Hazel/Core/Application.h"
 #include "Hazel/Core/Log.h"
+#include "Hazel/Core/TimeStep.h"
 
 #include "Hazel/Core/Events/Event.h"
 #include "Hazel/Core/Events/ApplicationEvent.h"
@@ -22,6 +23,7 @@
 #include "Hazel/Renderer/Shader.h"
 #include "Hazel/Renderer/Mesh.h"
 #include "Hazel/Renderer/Camera.h"
+#include "Hazel/Renderer/Material.h"
 // ---------------------------------------------------
 
 // --- Entry Point ------------

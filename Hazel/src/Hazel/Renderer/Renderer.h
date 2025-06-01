@@ -5,7 +5,8 @@
 
 namespace Hazel {
 
-	class HAZEL_API Renderer
+	// TODO: Maybe this should be renamed to RendererAPI? Because we want an actual renderer vs API calls...
+	class Renderer
 	{
 	public:
 		// 渲染命令函数指针类型

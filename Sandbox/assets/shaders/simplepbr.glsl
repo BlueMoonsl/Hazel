@@ -20,26 +20,47 @@ layout(location = 2) in vec3 a_Tangent;    // 切线
 layout(location = 3) in vec3 a_Binormal;   // 副法线
 layout(location = 4) in vec2 a_TexCoord;   // 纹理坐标
 
+layout(location = 5) in ivec4 a_BoneIndices;   // 骨骼索引
+layout(location = 6) in vec4 a_BoneWeights;    // 骨骼权重
+
 // Uniforms
 uniform mat4 u_ViewProjectionMatrix;       // 视图投影矩阵
 uniform mat4 u_ModelMatrix;                // 模型矩阵
 
+const int MAX_BONES = 100;
+uniform mat4 u_BoneTransforms[100];        // 骨骼变换矩阵数组
+
+// 顶点着色器输出结构体
 out VertexOutput
 {
 	vec3 WorldPosition;    // 世界空间位置
     vec3 Normal;           // 法线
 	vec2 TexCoord;         // 纹理坐标
 	mat3 WorldNormals;     // 世界空间法线矩阵（TBN）
+	vec3 Binormal;         // 世界空间副法线
 } vs_Output;
 
 void main()
 {
-	vs_Output.WorldPosition = vec3(mat4(u_ModelMatrix) * vec4(a_Position, 1.0));
-    vs_Output.Normal = a_Normal;
-	vs_Output.TexCoord = vec2(a_TexCoord.x, 1.0 - a_TexCoord.y);
-	vs_Output.WorldNormals = mat3(u_ModelMatrix) * mat3(a_Tangent, a_Binormal, a_Normal);
+	// 骨骼动画变换（线性混合骨骼矩阵）
+	mat4 boneTransform = u_BoneTransforms[a_BoneIndices[0]] * a_BoneWeights[0];
+    boneTransform += u_BoneTransforms[a_BoneIndices[1]] * a_BoneWeights[1];
+    boneTransform += u_BoneTransforms[a_BoneIndices[2]] * a_BoneWeights[2];
+    boneTransform += u_BoneTransforms[a_BoneIndices[3]] * a_BoneWeights[3];
 
-	gl_Position = u_ViewProjectionMatrix * u_ModelMatrix * vec4(a_Position, 1.0);
+	vec4 localPosition = boneTransform * vec4(a_Position, 1.0);
+
+	// 计算世界空间位置和法线
+	vs_Output.WorldPosition = vec3(u_ModelMatrix * boneTransform * vec4(a_Position, 1.0));
+    vs_Output.Normal = mat3(boneTransform) * a_Normal;
+	// 纹理坐标，V 轴翻转
+	vs_Output.TexCoord = vec2(a_TexCoord.x, 1.0 - a_TexCoord.y);
+	// 世界空间 TBN 矩阵
+	vs_Output.WorldNormals = mat3(u_ModelMatrix) * mat3(a_Tangent, a_Binormal, a_Normal);
+	vs_Output.Binormal = mat3(boneTransform) * a_Binormal;
+
+	// 输出最终裁剪空间位置
+	gl_Position = u_ViewProjectionMatrix * u_ModelMatrix * localPosition;
 }
 
 #type fragment
@@ -66,42 +87,43 @@ in VertexOutput
     vec3 Normal;
 	vec2 TexCoord;
 	mat3 WorldNormals;
+	vec3 Binormal;
 } vs_Input;
 
 // 片元输出
 layout(location=0) out vec4 color;
 
 // Uniforms
-uniform Light lights;
-uniform vec3 u_CameraPosition;
+uniform Light lights;                 // 场景主光源
+uniform vec3 u_CameraPosition;        // 相机世界空间位置
 
 // PBR相关纹理输入
-uniform sampler2D u_AlbedoTexture;
-uniform sampler2D u_NormalTexture;
-uniform sampler2D u_MetalnessTexture;
-uniform sampler2D u_RoughnessTexture;
+uniform sampler2D u_AlbedoTexture;    // 漫反射贴图
+uniform sampler2D u_NormalTexture;    // 法线贴图
+uniform sampler2D u_MetalnessTexture; // 金属度贴图
+uniform sampler2D u_RoughnessTexture; // 粗糙度贴图
 
 // 环境贴图
-uniform samplerCube u_EnvRadianceTex;
-uniform samplerCube u_EnvIrradianceTex;
+uniform samplerCube u_EnvRadianceTex;   // 环境辐射度贴图（高光）
+uniform samplerCube u_EnvIrradianceTex; // 环境辐照度贴图（漫反射）
 
 // BRDF查找表
-uniform sampler2D u_BRDFLUTTexture;
+uniform sampler2D u_BRDFLUTTexture;     // BRDF LUT 贴图
 
 // 材质参数
-uniform vec3 u_AlbedoColor;
-uniform float u_Metalness;
-uniform float u_Roughness;
+uniform vec3 u_AlbedoColor;             // 漫反射颜色
+uniform float u_Metalness;              // 金属度
+uniform float u_Roughness;              // 粗糙度
 
 // 环境贴图旋转
-uniform float u_EnvMapRotation;
+uniform float u_EnvMapRotation;         // 环境贴图旋转角度
 
 // 各种功能开关
-uniform float u_RadiancePrefilter;
-uniform float u_AlbedoTexToggle;
-uniform float u_NormalTexToggle;
-uniform float u_MetalnessTexToggle;
-uniform float u_RoughnessTexToggle;
+uniform float u_RadiancePrefilter;      // 是否使用预过滤环境贴图
+uniform float u_AlbedoTexToggle;        // 是否启用漫反射贴图
+uniform float u_NormalTexToggle;        // 是否启用法线贴图
+uniform float u_MetalnessTexToggle;     // 是否启用金属度贴图
+uniform float u_RoughnessTexToggle;     // 是否启用粗糙度贴图
 
 // PBR参数结构体
 struct PBRParameters
