@@ -5,15 +5,20 @@
 
 namespace Hazel {
 
+	std::vector<Shader*> Shader::s_AllShaders;
+
 	// 创建不同API的shader
 	Shader* Shader::Create(const std::string& filepath)
 	{
+		Shader* result = nullptr;
+
 		switch (RendererAPI::Current())
 		{
 			case RendererAPIType::None: return nullptr;
-			case RendererAPIType::OpenGL: return new OpenGLShader(filepath);
+			case RendererAPIType::OpenGL: result = new OpenGLShader(filepath);
 		}
-		return nullptr;
+		s_AllShaders.push_back(result);
+		return result;
 	}
 
 }

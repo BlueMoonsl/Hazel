@@ -8,6 +8,8 @@
 
 namespace Hazel {
 
+	Input* Input::s_Instance = new WindowsInput;
+
 	// 检查指定键是否被按下（包括长按重复）
 	bool WindowsInput::IsKeyPressedImpl(int keycode)
 	{

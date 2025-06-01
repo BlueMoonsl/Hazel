@@ -11,13 +11,13 @@ namespace Hazel {
 		// 渲染命令函数指针类型
 		typedef void(*RenderCommandFn)(void*);							
 		
-		static void Clear();											// 渲染命令：清空帧缓冲
-		static void Clear(float r, float g, float b, float a = 1.0f);  	// 渲染命令：以指定颜色清空帧缓冲
-		static void SetClearColor(float r, float g, float b, float a);	// 设置清空颜色
+		static void Clear();												// 渲染命令：清空帧缓冲
+		static void Clear(float r, float g, float b, float a = 1.0f);  		// 渲染命令：以指定颜色清空帧缓冲
+		static void SetClearColor(float r, float g, float b, float a);		// 设置清空颜色
 
-		static void DrawIndexed(unsigned int count);					// 绘制索引图元
+		static void DrawIndexed(unsigned int count, bool depthTest = true);	// 绘制索引图元
 
-		static void ClearMagenta();										// 清空为洋红色（调试用）
+		static void ClearMagenta();											// 清空为洋红色（调试用）
 
 		static void Init();
 

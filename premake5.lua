@@ -52,7 +52,9 @@ project "Hazel"
         "%{IncludeDir.GLFW}",
         "%{IncludeDir.Glad}",
         "%{IncludeDir.glm}",
-        "%{IncludeDir.ImGui}"
+        "%{IncludeDir.ImGui}",
+        "%{prj.name}/vendor/assimp/include",
+        "%{prj.name}/vendor/stb/include"
     }
     
     links 
@@ -99,7 +101,8 @@ project "Sandbox"
 
 	links 
 	{ 
-		"Hazel"
+		"Hazel",
+        "Hazel/vendor/assimp/win64/assimp-vc143-mt.lib"
     }
     
 	files 

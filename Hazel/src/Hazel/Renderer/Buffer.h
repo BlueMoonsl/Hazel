@@ -9,16 +9,12 @@ namespace Hazel {
 	{
 	public:
 		virtual ~VertexBuffer() {}
-		
-		// 设置缓冲区数据
-		virtual void SetData(void* buffer, unsigned int size, unsigned int offset = 0) = 0;	
-		// 绑定缓冲区到渲染管线
-		virtual void Bind() const = 0;
+																										
+		virtual void SetData(void* buffer, unsigned int size, unsigned int offset = 0) = 0;	 // 设置缓冲区数据
+		virtual void Bind() const = 0; 														 // 绑定缓冲区到渲染管线
 
-		// 获取缓冲区大小
-		virtual unsigned int GetSize() const = 0;
-		// 获取底层API的缓冲区ID
-		virtual RendererID GetRendererID() const = 0;
+		virtual unsigned int GetSize() const = 0;											 // 获取缓冲区大小
+		virtual RendererID GetRendererID() const = 0;										 // 获取底层API的缓冲区ID
 
 		static VertexBuffer* Create(unsigned int size = 0);
 	};
@@ -31,6 +27,8 @@ namespace Hazel {
 
 		virtual void SetData(void* buffer, unsigned int size, unsigned int offset = 0) = 0;
 		virtual void Bind() const = 0;
+
+		virtual uint32_t GetCount() const = 0;												 // 获取索引数量
 
 		virtual unsigned int GetSize() const = 0;
 		virtual RendererID GetRendererID() const = 0;

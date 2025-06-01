@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Event.h"
+#include "Hazel/Core/KeyCodes.h"
 
 #include <sstream>
 
