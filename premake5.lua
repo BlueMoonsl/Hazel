@@ -9,7 +9,7 @@ workspace "Hazel"
         "Dist"
     }
 
-	startproject "Sandbox"
+	startproject "Hazelnut"
     
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
@@ -25,135 +25,219 @@ include "Hazel/vendor/Glad"
 include "Hazel/vendor/ImGui"
 
 project "Hazel"
-    location "Hazel"
-    kind "StaticLib"
-    language "C++"
-    cppdialect "C++17"
-    staticruntime "on"
+        location "Hazel"
+        kind "StaticLib"
+        language "C++"
+        cppdialect "C++17"
+        staticruntime "on"
 
-	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
-    objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+        targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+        objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
-    pchheader "hzpch.h"
-    pchsource "Hazel/src/hzpch.cpp"
+        pchheader "hzpch.h"
+        pchsource "Hazel/src/hzpch.cpp"
 
-	files 
-	{ 
-		"%{prj.name}/src/**.h", 
-		"%{prj.name}/src/**.c", 
-		"%{prj.name}/src/**.hpp", 
-		"%{prj.name}/src/**.cpp" 
-    }
+        files 
+        { 
+            "%{prj.name}/src/**.h", 
+            "%{prj.name}/src/**.c", 
+            "%{prj.name}/src/**.hpp", 
+            "%{prj.name}/src/**.cpp" 
+        }
 
-    includedirs
-	{
-		"%{prj.name}/src",
-        "%{prj.name}/vendor",
-        "%{IncludeDir.GLFW}",
-        "%{IncludeDir.Glad}",
-        "%{IncludeDir.glm}",
-        "%{IncludeDir.ImGui}",
-        "%{prj.name}/vendor/assimp/include",
-        "%{prj.name}/vendor/stb/include"
-    }
+        includedirs
+        {
+            "%{prj.name}/src",
+            "%{prj.name}/vendor",
+            "%{IncludeDir.GLFW}",
+            "%{IncludeDir.Glad}",
+            "%{IncludeDir.glm}",
+            "%{IncludeDir.ImGui}",
+            "%{prj.name}/vendor/assimp/include",
+            "%{prj.name}/vendor/stb/include"
+        }
     
-    links 
-	{ 
-        "GLFW",
-        "Glad",
-        "ImGui",
-		"opengl32.lib"
-    }
+        links 
+        { 
+            "GLFW",
+            "Glad",
+            "ImGui",
+            "opengl32.lib"
+        }
     
-	filter "system:windows"
-        systemversion "latest"
+        filter "system:windows"
+            systemversion "latest"
+            
+            defines 
+            { 
+                "HZ_PLATFORM_WINDOWS",
+                "HZ_BUILD_DLL"
+            }
+
+        filter "configurations:Debug"
+            defines "HZ_DEBUG"
+            buildoptions "/MDd"
+            symbols "On"
+                    
+        filter "configurations:Release"
+            defines "HZ_RELEASE"
+            buildoptions "/MD"
+            optimize "On"
+
+        filter "configurations:Dist"
+            defines "HZ_DIST"
+            buildoptions "/MD"
+            optimize "On"
+
+project "Hazelnut"
+        location "Hazelnut"
+        kind "ConsoleApp"
+        language "C++"
+        cppdialect "C++17"
+        staticruntime "on"
         
-		defines 
-		{ 
-            "HZ_PLATFORM_WINDOWS",
-            "HZ_BUILD_DLL"
-		}
+        targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+        objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
-    filter "configurations:Debug"
-        defines "HZ_DEBUG"
-        buildoptions "/MDd"
-        symbols "On"
-                
-    filter "configurations:Release"
-        defines "HZ_RELEASE"
-        buildoptions "/MD"
-        optimize "On"
-
-    filter "configurations:Dist"
-        defines "HZ_DIST"
-        buildoptions "/MD"
-        optimize "On"
-
-project "Sandbox"
-    location "Sandbox"
-    kind "ConsoleApp"
-    language "C++"
-    cppdialect "C++17"
-    staticruntime "on"
+        links 
+        { 
+            "Hazel"
+        }
     
-	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
-    objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
-
-	links 
-	{ 
-		"Hazel"
-    }
-    
-	files 
-	{ 
-		"%{prj.name}/src/**.h", 
-		"%{prj.name}/src/**.c", 
-		"%{prj.name}/src/**.hpp", 
-		"%{prj.name}/src/**.cpp" 
-	}
-    
-	includedirs 
-	{
-        "%{prj.name}/src",
-        "Hazel/src",
-        "Hazel/vendor",
-        "%{IncludeDir.glm}"
-    }
+        files 
+        { 
+            "%{prj.name}/src/**.h", 
+            "%{prj.name}/src/**.c", 
+            "%{prj.name}/src/**.hpp", 
+            "%{prj.name}/src/**.cpp" 
+        }
+        
+        includedirs 
+        {
+            "%{prj.name}/src",
+            "Hazel/src",
+            "Hazel/vendor",
+            "%{IncludeDir.glm}"
+        }
 	
-	filter "system:windows"
-        systemversion "latest"
-                
-		defines 
-		{ 
-            "HZ_PLATFORM_WINDOWS"
-		}
-    
-    filter "configurations:Debug"
-        defines "HZ_DEBUG"
-        buildoptions "/MDd"
-        symbols "on"
+        filter "system:windows"
+            systemversion "latest"
+                    
+            defines 
+            { 
+                "HZ_PLATFORM_WINDOWS"
+            }
+        
+        filter "configurations:Debug"
+            defines "HZ_DEBUG"
+            buildoptions "/MDd"
+            symbols "on"
                
-        links
-		{
-			"Hazel/vendor/assimp/bin/Debug/assimp-vc143-mtd.lib"
-		}
+            links
+            {
+                "Hazel/vendor/assimp/bin/Debug/assimp-vc143-mtd.lib"
+            }
 
-    filter "configurations:Release"
-        defines "HZ_RELEASE"
-        buildoptions "/MD"
-        optimize "on"
+            postbuildcommands
+            {
+                '{COPY} "../Hazel/vendor/assimp/bin/Debug/assimp-vc143-mtd.dll" "%{cfg.targetdir}"'
+            }
 
-        links
-		{
-			"Hazel/vendor/assimp/bin/Release/assimp-vc143-mt.lib"
-		}
+        filter "configurations:Release"
+            defines "HZ_RELEASE"
+            buildoptions "/MD"
+            optimize "on"
 
-    filter "configurations:Dist"
-        defines "HZ_DIST"
-        buildoptions "/MD"
-        optimize "on"
+            links
+            {
+                "Hazel/vendor/assimp/bin/Release/assimp-vc143-mt.lib"
+            }
 
-        links
-		{
-			"Hazel/vendor/assimp/bin/Release/assimp-vc143-mt.lib"
-		}
+            postbuildcommands 
+            {
+                '{COPY} "../Hazel/vendor/assimp/bin/Release/assimp-vc143-mtd.dll" "%{cfg.targetdir}"'
+            }
+
+        filter "configurations:Dist"
+            defines "HZ_DIST"
+            buildoptions "/MD"
+            optimize "on"
+
+            links
+            {
+                "Hazel/vendor/assimp/bin/Release/assimp-vc143-mt.lib"
+            }
+
+            postbuildcommands
+            {
+                '{COPY} "../Hazel/vendor/assimp/bin/Release/assimp-vc141-mtd.dll" "%{cfg.targetdir}"'
+            }
+            
+            project "Sandbox"
+            location "Sandbox"
+            kind "ConsoleApp"
+            language "C++"
+            cppdialect "C++17"
+            staticruntime "on"
+            
+            targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+            objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+            links 
+            { 
+                "Hazel"
+            }
+            
+            files 
+            { 
+                "%{prj.name}/src/**.h", 
+                "%{prj.name}/src/**.c", 
+                "%{prj.name}/src/**.hpp", 
+                "%{prj.name}/src/**.cpp" 
+            }
+            
+            includedirs 
+            {
+                "%{prj.name}/src",
+                "Hazel/src",
+                "Hazel/vendor",
+                "%{IncludeDir.glm}"
+            }
+            
+            filter "system:windows"
+                systemversion "latest"
+                        
+                defines 
+                { 
+                    "HZ_PLATFORM_WINDOWS"
+                }
+            
+            filter "configurations:Debug"
+                defines "HZ_DEBUG"
+                buildoptions "/MDd"
+                symbols "on"
+
+                links
+                {
+                    "Hazel/vendor/assimp/bin/Debug/assimp-vc143-mtd.lib"
+                }
+                        
+            filter "configurations:Release"
+                defines "HZ_RELEASE"
+                buildoptions "/MD"
+                optimize "on"
+
+                links
+                {
+                    "Hazel/vendor/assimp/bin/Release/assimp-vc143-mt.lib"
+                }
+
+            filter "configurations:Dist"
+                defines "HZ_DIST"
+                buildoptions "/MD"
+                optimize "on"
+
+                links
+                {
+                    "Hazel/vendor/assimp/bin/Release/assimp-vc143-mt.lib"
+                }

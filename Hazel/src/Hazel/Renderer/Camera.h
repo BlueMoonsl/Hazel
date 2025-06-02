@@ -21,6 +21,7 @@ namespace Hazel {
 
 		// 设置投影矩阵
 		inline void SetProjectionMatrix(const glm::mat4& projectionMatrix) { m_ProjectionMatrix = projectionMatrix; }
+		inline void SetViewportSize(uint32_t width, uint32_t height) { m_ViewportWidth = width; m_ViewportHeight = height; }
 
 		// 获取投影矩阵、视图矩阵
 		const glm::mat4& GetProjectionMatrix() const { return m_ProjectionMatrix; }
@@ -39,6 +40,10 @@ namespace Hazel {
 
 		glm::vec3 CalculatePosition();						// 计算相机位置
 		glm::quat GetOrientation();							// 获取相机朝向的四元数
+	
+		std::pair<float, float> PanSpeed() const;
+		float RotationSpeed() const;
+		float ZoomSpeed() const;
 	private:
 		glm::mat4 m_ProjectionMatrix, m_ViewMatrix;			// 投影矩阵和视图矩阵
 		glm::vec3 m_Position, m_Rotation, m_FocalPoint;		// 相机位置、欧拉角旋转、焦点位置
@@ -48,9 +53,9 @@ namespace Hazel {
 		glm::vec3 m_InitialFocalPoint, m_InitialRotation;	// 操作开始时的焦点和旋转
 
 		float m_Distance;									// 相机与焦点的距离
-		float m_PanSpeed, m_RotationSpeed, m_ZoomSpeed;		// 平移、旋转、缩放速度
-
 		float m_Pitch, m_Yaw;								// 俯仰角和偏航角（欧拉角）
+		
+		uint32_t m_ViewportWidth = 1280, m_ViewportHeight = 720;
 	};
 
 }

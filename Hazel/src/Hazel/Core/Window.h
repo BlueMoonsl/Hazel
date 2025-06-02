@@ -23,7 +23,7 @@ namespace Hazel {
 	};
 
 	// 桌面系统窗口接口，所有平台窗口需实现此接口
-	class HAZEL_API Window
+	class Window
 	{
 	public:
 		using EventCallbackFn = std::function<void(Event&)>;
@@ -34,6 +34,7 @@ namespace Hazel {
 
 		virtual unsigned int GetWidth() const = 0;
 		virtual unsigned int GetHeight() const = 0;
+		virtual std::pair<float, float> GetWindowPos() const = 0;
 
 		// 窗口属性
 		virtual void SetEventCallback(const EventCallbackFn& callback) = 0;		// 设置事件回调函数

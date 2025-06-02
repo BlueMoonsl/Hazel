@@ -7,7 +7,7 @@
 namespace Hazel {
 
 	// 窗口尺寸变化事件
-	class HAZEL_API WindowResizeEvent : public Event
+	class WindowResizeEvent : public Event
 	{
 	public:
 		WindowResizeEvent(unsigned int width, unsigned int height)
@@ -30,7 +30,7 @@ namespace Hazel {
 	};
 
 	// 窗口关闭事件
-	class HAZEL_API WindowCloseEvent : public Event
+	class WindowCloseEvent : public Event
 	{
 	public:
 		WindowCloseEvent() {}
@@ -40,7 +40,7 @@ namespace Hazel {
 	};
 
 	// App每帧触发事件
-	class HAZEL_API AppTickEvent : public Event
+	class AppTickEvent : public Event
 	{
 	public:
 		AppTickEvent() {}
@@ -50,7 +50,7 @@ namespace Hazel {
 	};
 
 	// App更新事件
-	class HAZEL_API AppUpdateEvent : public Event
+	class AppUpdateEvent : public Event
 	{
 	public:
 		AppUpdateEvent() {}
@@ -60,7 +60,7 @@ namespace Hazel {
 	};
 
 	// App渲染事件
-	class HAZEL_API AppRenderEvent : public Event
+	class AppRenderEvent : public Event
 	{
 	public:
 		AppRenderEvent() {}

@@ -11,10 +11,16 @@
 
 namespace Hazel {
 
+	struct ApplicationProps
+	{
+		std::string Name;
+		uint32_t WindowWidth, WindowHeight;
+	};
+
 	class Application
 	{
 	public:
-		Application();
+		Application(const ApplicationProps& props = { "Hazel Engine", 1280, 720 });
 		virtual ~Application();
 
 		void Run();
@@ -32,7 +38,7 @@ namespace Hazel {
 		std::string OpenFile(const std::string& filter) const;
 
 		inline Window& GetWindow() { return *m_Window; }
-		
+
 		static inline Application& Get() { return *s_Instance; }
 
 		float GetTime() const; // TODO: This should be in "Platform"

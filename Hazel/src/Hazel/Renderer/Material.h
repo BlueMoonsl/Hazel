@@ -55,6 +55,8 @@ namespace Hazel {
 		{
 			Set(name, (const Ref<Texture>&)texture);
 		}
+	public:
+		static Ref<Material> Create(const Ref<Shader>& shader);
 	private:
 		void AllocateStorage();			// 分配 Uniform 存储空间
 		void OnShaderReloaded();		// 着色器重新加载时的回调
@@ -88,6 +90,8 @@ namespace Hazel {
 		void Set(const std::string& name, const T& value)
 		{
 			auto decl = m_Material->FindUniformDeclaration(name);
+			if (!decl)
+				return;
 			// HZ_CORE_ASSERT(decl, "Could not find uniform with name '{0}'", name);
 			HZ_CORE_ASSERT(decl, "Could not find uniform with name 'x'");
 			auto& buffer = GetUniformBufferTarget(decl);
@@ -120,6 +124,8 @@ namespace Hazel {
 
 		// 绑定材质实例
 		void Bind() const;
+	public:
+		static Ref<MaterialInstance> Create(const Ref<Material>& material);
 	private:
 		void AllocateStorage();			 // 分配 Uniform 存储空间
 		void OnShaderReloaded();		 // 着色器重新加载时的回调

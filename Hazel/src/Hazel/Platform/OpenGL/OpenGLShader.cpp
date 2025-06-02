@@ -22,13 +22,28 @@ namespace Hazel {
 	{
 		size_t found = filepath.find_last_of("/\\");
 		m_Name = found != std::string::npos ? filepath.substr(found + 1) : filepath;
+		found = m_Name.find_last_of(".");
+		m_Name = found != std::string::npos ? m_Name.substr(0, found) : m_Name;
+		
 		Reload();
+	}
+
+	Ref<OpenGLShader> OpenGLShader::CreateFromString(const std::string& source)
+	{
+		Ref<OpenGLShader> shader = std::make_shared<OpenGLShader>();
+		shader->Load(source);
+		return shader;
 	}
 
 	// 重新加载着色器（读取源码、编译、解析 Uniform 等）
 	void OpenGLShader::Reload()
 	{
 		std::string source = ReadShaderFromFile(m_AssetPath);
+		Load(source);
+	}
+
+	void OpenGLShader::Load(const std::string& source)
+	{
 		m_ShaderSource = PreProcess(source);
 		Parse();
 

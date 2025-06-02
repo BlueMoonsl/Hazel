@@ -5,8 +5,10 @@
 
 #include "Hazel/Core/TimeStep.h"
 
+#include "Hazel/Renderer/VertexArray.h"
 #include "Hazel/Renderer/Buffer.h"
 #include "Hazel/Renderer/Shader.h"
+#include "Hazel/Renderer/Material.h"
 
 struct aiNode;
 struct aiAnimation;
@@ -21,6 +23,15 @@ namespace Hazel {
 
 	// Mesh 顶点数据结构，包含蒙皮动画相关信息
 	struct Vertex
+	{
+		glm::vec3 Position;
+		glm::vec3 Normal;
+		glm::vec3 Tangent;
+		glm::vec3 Binormal;
+		glm::vec2 Texcoord;
+	};
+
+	struct AnimatedVertex
 	{
 		glm::vec3 Position;   // 顶点位置
 		glm::vec3 Normal;     // 法线
@@ -103,6 +114,8 @@ namespace Hazel {
 		uint32_t BaseIndex;      // 索引起始位置
 		uint32_t MaterialIndex;  // 材质索引
 		uint32_t IndexCount;     // 索引数量
+
+		glm::mat4 Transform;
 	};
 
 	// 网格（Mesh）类，支持 Assimp 导入、骨骼动画、渲染等
@@ -112,15 +125,19 @@ namespace Hazel {
 		Mesh(const std::string& filename); // 从文件构造网格
 		~Mesh();
 
-		void Render(TimeStep ts, Shader* shader); // 渲染网格
+		void Render(TimeStep ts, Ref<MaterialInstance> materialInstance = Ref<MaterialInstance>());
+		void Render(TimeStep ts, const glm::mat4& transform = glm::mat4(1.0f), Ref<MaterialInstance> materialInstance = Ref<MaterialInstance>());
 		void OnImGuiRender();                     // ImGui 调试界面
 		void DumpVertexBuffer();                  // 输出顶点缓冲区信息
 
+		inline Ref<Shader> GetMeshShader() { return m_MeshShader; }
+		inline Ref<Material> GetMaterial() { return m_Material; }
 		inline const std::string& GetFilePath() const { return m_FilePath; }	// 获取网格文件路径
 	private:
 		// 骨骼动画相关
 		void BoneTransform(float time);
 		void ReadNodeHierarchy(float AnimationTime, const aiNode* pNode, const glm::mat4& ParentTransform);
+		void TraverseNodes(aiNode* node, int level = 0);
 
 		const aiNodeAnim* FindNodeAnim(const aiAnimation* animation, const std::string& nodeName);
 		uint32_t FindPosition(float AnimationTime, const aiNodeAnim* pNodeAnim);
@@ -139,16 +156,21 @@ namespace Hazel {
 		uint32_t m_BoneCount = 0; // 骨骼数量
 		std::vector<BoneInfo> m_BoneInfo; // 骨骼信息
 
-		std::unique_ptr<VertexBuffer> m_VertexBuffer; // 顶点缓冲区对象
-		std::unique_ptr<IndexBuffer> m_IndexBuffer;   // 索引缓冲区对象
+		Ref<VertexArray> m_VertexArray;
 
-		std::vector<Vertex> m_Vertices; // 顶点数据
+		std::vector<Vertex> m_StaticVertices;
+		std::vector<AnimatedVertex> m_AnimatedVertices;
 		std::vector<Index> m_Indices;   // 索引数据
 		std::unordered_map<std::string, uint32_t> m_BoneMapping; // 骨骼名到索引的映射
 		std::vector<glm::mat4> m_BoneTransforms; // 骨骼变换矩阵
 		const aiScene* m_Scene; // Assimp 场景指针
 
+		// Materials
+		Ref<Shader> m_MeshShader;
+		Ref<Material> m_Material;
+
 		// 动画相关
+		bool m_IsAnimated = false;
 		float m_AnimationTime = 0.0f;
 		float m_WorldTime = 0.0f;
 		float m_TimeMultiplier = 1.0f;

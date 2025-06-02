@@ -5,6 +5,8 @@
 
 namespace Hazel {
 
+	class ShaderLibrary;
+
 	// TODO: Maybe this should be renamed to RendererAPI? Because we want an actual renderer vs API calls...
 	class Renderer
 	{
@@ -16,11 +18,13 @@ namespace Hazel {
 		static void Clear(float r, float g, float b, float a = 1.0f);  		// 渲染命令：以指定颜色清空帧缓冲
 		static void SetClearColor(float r, float g, float b, float a);		// 设置清空颜色
 
-		static void DrawIndexed(unsigned int count, bool depthTest = true);	// 绘制索引图元
+		static void DrawIndexed(uint32_t count, bool depthTest = true);		// 绘制索引图元
 
 		static void ClearMagenta();											// 清空为洋红色（调试用）
 
 		static void Init();
+
+		static const Scope<ShaderLibrary>& GetShaderLibrary() { return Get().m_ShaderLibrary; }
 
 		// 提交渲染命令到命令队列
 		static void* Submit(RenderCommandFn fn, unsigned int size)
@@ -37,6 +41,7 @@ namespace Hazel {
 		static Renderer* s_Instance;           // 渲染器单例指针
 
 		RenderCommandQueue m_CommandQueue;     // 渲染命令队列
+		Scope<ShaderLibrary> m_ShaderLibrary;
 	};
 
 }

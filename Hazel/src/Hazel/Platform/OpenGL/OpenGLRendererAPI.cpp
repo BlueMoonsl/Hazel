@@ -15,7 +15,7 @@ namespace Hazel {
 		}
 		else
 		{
-			HZ_CORE_TRACE("{0}", message);      // 输出普通调试信息
+			// HZ_CORE_TRACE("{0}", message);      // 输出普通调试信息
 		}
 	}
 
@@ -23,6 +23,7 @@ namespace Hazel {
 	void RendererAPI::Init()
 	{
 		glDebugMessageCallback(OpenGLLogMessage, nullptr); // 注册 OpenGL 调试回调
+		glEnable(GL_DEBUG_OUTPUT);
 		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);             // 同步输出调试信息
 
 		unsigned int vao;
@@ -54,10 +55,16 @@ namespace Hazel {
 			HZ_CORE_ERROR("OpenGL Error {0}", error);
 			error = glGetError();
 		}
+
+		LoadRequiredAssets();
 	}
 
 	// 关闭 OpenGL 渲染器（目前无操作）
 	void RendererAPI::Shutdown()
+	{
+	}
+
+	void RendererAPI::LoadRequiredAssets()
 	{
 	}
 

@@ -1,6 +1,8 @@
 ﻿#include "hzpch.h"
 #include "Renderer.h"
 
+#include "Shader.h"
+
 namespace Hazel {
 
 	Renderer* Renderer::s_Instance = new Renderer();
@@ -8,7 +10,11 @@ namespace Hazel {
 	
 	void Renderer::Init()
 	{
+		s_Instance->m_ShaderLibrary = std::make_unique<ShaderLibrary>();
 		HZ_RENDER({ RendererAPI::Init(); });
+
+		Renderer::GetShaderLibrary()->Load("assets/shaders/HazelPBR_Static.glsl");
+		Renderer::GetShaderLibrary()->Load("assets/shaders/HazelPBR_Anim.glsl");
 	}
 
 	void Renderer::Clear()
@@ -34,7 +40,7 @@ namespace Hazel {
 	{
 	}
 
-	void Renderer::DrawIndexed(unsigned int count, bool depthTest)
+	void Renderer::DrawIndexed(uint32_t count, bool depthTest)
 	{
 		HZ_RENDER_2(count, depthTest, {
 			RendererAPI::DrawIndexed(count, depthTest);

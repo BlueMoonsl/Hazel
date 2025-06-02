@@ -167,6 +167,13 @@ namespace Hazel {
 		
 	}
 
+	inline std::pair<float, float> WindowsWindow::GetWindowPos() const
+	{
+		int x, y;
+		glfwGetWindowPos(m_Window, &x, &y);
+		return { x, y };
+	}
+
 	// 每帧更新窗口（处理事件和交换缓冲）
 	void WindowsWindow::OnUpdate()
 	{

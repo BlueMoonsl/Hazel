@@ -12,7 +12,9 @@ namespace Hazel {
 	{
 	public:
 		// 构造函数，传入着色器文件路径
+		OpenGLShader() = default;
 		OpenGLShader(const std::string& filepath);
+		static Ref<OpenGLShader> CreateFromString(const std::string& source);
 
 		// 重新加载着色器、添加重载回调
 		virtual void Reload() override;
@@ -36,6 +38,8 @@ namespace Hazel {
 		// 获取着色器名称
 		virtual const std::string& GetName() const override { return m_Name; }
 	private:
+		void Load(const std::string& source);
+
 		std::string ReadShaderFromFile(const std::string& filepath) const;				// 从文件读取着色器源码
 		std::unordered_map<GLenum, std::string> PreProcess(const std::string& source);	// 预处理源码，按类型分割
 		void Parse();		// 解析着色器源码
@@ -90,8 +94,8 @@ namespace Hazel {
 		// 获取着色器资源列表
 		inline const ShaderResourceList& GetResources() const override { return m_Resources; }
 	private:
-		RendererID m_RendererID; // OpenGL 着色器对象 ID
-		bool m_Loaded = false;   // 是否已加载
+		RendererID m_RendererID = 0;	// OpenGL 着色器对象 ID
+		bool m_Loaded = false;			// 是否已加载
 
 		std::string m_Name, m_AssetPath; // 着色器名称和资源路径
 		std::unordered_map<GLenum, std::string> m_ShaderSource; // 按类型存储源码

@@ -148,6 +148,7 @@
   <ItemGroup>
     <ClInclude Include="src\Hazel.h" />
     <ClInclude Include="src\Hazel\Core\Application.h" />
+    <ClInclude Include="src\Hazel\Core\Assert.h" />
     <ClInclude Include="src\Hazel\Core\Base.h" />
     <ClInclude Include="src\Hazel\Core\Buffer.h" />
     <ClInclude Include="src\Hazel\Core\Events\ApplicationEvent.h" />
@@ -169,6 +170,7 @@
     <ClInclude Include="src\Hazel\Platform\OpenGL\OpenGLShader.h" />
     <ClInclude Include="src\Hazel\Platform\OpenGL\OpenGLShaderUniform.h" />
     <ClInclude Include="src\Hazel\Platform\OpenGL\OpenGLTexture.h" />
+    <ClInclude Include="src\Hazel\Platform\OpenGL\OpenGLVertexArray.h" />
     <ClInclude Include="src\Hazel\Platform\Windows\WindowsInput.h" />
     <ClInclude Include="src\Hazel\Platform\Windows\WindowsWindow.h" />
     <ClInclude Include="src\Hazel\Renderer\Buffer.h" />
@@ -182,6 +184,7 @@
     <ClInclude Include="src\Hazel\Renderer\Shader.h" />
     <ClInclude Include="src\Hazel\Renderer\ShaderUniform.h" />
     <ClInclude Include="src\Hazel\Renderer\Texture.h" />
+    <ClInclude Include="src\Hazel\Renderer\VertexArray.h" />
     <ClInclude Include="src\hzpch.h" />
   </ItemGroup>
   <ItemGroup>
@@ -200,6 +203,7 @@
     <ClCompile Include="src\Hazel\Platform\OpenGL\OpenGLShader.cpp" />
     <ClCompile Include="src\Hazel\Platform\OpenGL\OpenGLShaderUniform.cpp" />
     <ClCompile Include="src\Hazel\Platform\OpenGL\OpenGLTexture.cpp" />
+    <ClCompile Include="src\Hazel\Platform\OpenGL\OpenGLVertexArray.cpp" />
     <ClCompile Include="src\Hazel\Platform\Windows\WindowsInput.cpp" />
     <ClCompile Include="src\Hazel\Platform\Windows\WindowsWindow.cpp" />
     <ClCompile Include="src\Hazel\Renderer\Buffer.cpp" />
@@ -211,6 +215,7 @@
     <ClCompile Include="src\Hazel\Renderer\Renderer.cpp" />
     <ClCompile Include="src\Hazel\Renderer\Shader.cpp" />
     <ClCompile Include="src\Hazel\Renderer\Texture.cpp" />
+    <ClCompile Include="src\Hazel\Renderer\VertexArray.cpp" />
     <ClCompile Include="src\Hazel\Vendor\stb_image.cpp" />
     <ClCompile Include="src\hzpch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>

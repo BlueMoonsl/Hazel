@@ -22,6 +22,14 @@ namespace Hazel {
 		{
 		}
 
+		static Buffer Copy(void* data, uint32_t size)
+		{
+			Buffer buffer;
+			buffer.Allocate(size);
+			memcpy(buffer.Data, data, size);
+			return buffer;
+		}
+
 		// 分配指定大小的缓冲区，自动释放旧数据
 		void Allocate(uint32_t size)
 		{

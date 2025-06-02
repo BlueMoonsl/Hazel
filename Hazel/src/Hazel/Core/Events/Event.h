@@ -34,7 +34,7 @@ namespace Hazel {
 #define EVENT_CLASS_CATEGORY(category) virtual int GetCategoryFlags() const override { return category; }
 
 	// 事件基类，所有事件需继承此类
-	class HAZEL_API Event
+	class Event
 	{
 	public:
 		bool Handled = false; // 事件是否已被处理

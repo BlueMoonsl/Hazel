@@ -34,6 +34,9 @@
     <ClInclude Include="src\Hazel\Core\Application.h">
       <Filter>Hazel\Core</Filter>
     </ClInclude>
+    <ClInclude Include="src\Hazel\Core\Assert.h">
+      <Filter>Hazel\Core</Filter>
+    </ClInclude>
     <ClInclude Include="src\Hazel\Core\Base.h">
       <Filter>Hazel\Core</Filter>
     </ClInclude>
@@ -97,6 +100,9 @@
     <ClInclude Include="src\Hazel\Platform\OpenGL\OpenGLTexture.h">
       <Filter>Hazel\Platform\OpenGL</Filter>
     </ClInclude>
+    <ClInclude Include="src\Hazel\Platform\OpenGL\OpenGLVertexArray.h">
+      <Filter>Hazel\Platform\OpenGL</Filter>
+    </ClInclude>
     <ClInclude Include="src\Hazel\Platform\Windows\WindowsInput.h">
       <Filter>Hazel\Platform\Windows</Filter>
     </ClInclude>
@@ -134,6 +140,9 @@
       <Filter>Hazel\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\Hazel\Renderer\Texture.h">
+      <Filter>Hazel\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Hazel\Renderer\VertexArray.h">
       <Filter>Hazel\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\hzpch.h" />
@@ -184,6 +193,9 @@
     <ClCompile Include="src\Hazel\Platform\OpenGL\OpenGLTexture.cpp">
       <Filter>Hazel\Platform\OpenGL</Filter>
     </ClCompile>
+    <ClCompile Include="src\Hazel\Platform\OpenGL\OpenGLVertexArray.cpp">
+      <Filter>Hazel\Platform\OpenGL</Filter>
+    </ClCompile>
     <ClCompile Include="src\Hazel\Platform\Windows\WindowsInput.cpp">
       <Filter>Hazel\Platform\Windows</Filter>
     </ClCompile>
@@ -215,6 +227,9 @@
       <Filter>Hazel\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="src\Hazel\Renderer\Texture.cpp">
+      <Filter>Hazel\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Hazel\Renderer\VertexArray.cpp">
       <Filter>Hazel\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="src\Hazel\Vendor\stb_image.cpp">

@@ -8,7 +8,7 @@
 namespace Hazel {
 
 	// 键盘基事件
-	class HAZEL_API KeyEvent : public Event
+	class KeyEvent : public Event
 	{
 	public:
 		inline int GetKeyCode() const { return m_KeyCode; }
@@ -22,7 +22,7 @@ namespace Hazel {
 	};
 
 	// 按键按下事件
-	class HAZEL_API KeyPressedEvent : public KeyEvent
+	class KeyPressedEvent : public KeyEvent
 	{
 	public:
 		KeyPressedEvent(int keycode, int repeatCount)
@@ -43,7 +43,7 @@ namespace Hazel {
 	};
 
 	// 按键释放事件
-	class HAZEL_API KeyReleasedEvent : public KeyEvent
+	class KeyReleasedEvent : public KeyEvent
 	{
 	public:
 		KeyReleasedEvent(int keycode)
@@ -60,7 +60,7 @@ namespace Hazel {
 	};
 
 	// 可打印字符按键事件
-	class HAZEL_API KeyTypedEvent : public KeyEvent
+	class KeyTypedEvent : public KeyEvent
 	{
 	public:
 		KeyTypedEvent(int keycode)

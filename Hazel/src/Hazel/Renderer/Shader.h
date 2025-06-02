@@ -131,8 +131,9 @@ namespace Hazel
 
 		virtual const std::string& GetName() const = 0;					// 获取着色器名称
 
-		static Shader* Create(const std::string& filepath);				// 创建Shader实例，filepath为着色器文件路径
-		
+		static Ref<Shader> Create(const std::string& filepath);			// 创建Shader实例，filepath为着色器文件路径
+		static Ref<Shader> CreateFromString(const std::string& source);
+
 		virtual void SetVSMaterialUniformBuffer(Buffer buffer) = 0;		// 设置顶点着色器材质Uniform缓冲区
 		virtual void SetPSMaterialUniformBuffer(Buffer buffer) = 0;		// 设置片段着色器材质Uniform缓冲区
 
@@ -145,7 +146,23 @@ namespace Hazel
 
 		virtual void AddShaderReloadedCallback(const ShaderReloadedCallback& callback) = 0;		// 添加着色器重新加载回调
 
-		static std::vector<Shader*> s_AllShaders;						// 临时全局着色器列表（在资源管理器完善前使用）
+		static std::vector<Ref<Shader>> s_AllShaders;
+	};
+
+	// This should be eventually handled by the Asset Manager
+	class ShaderLibrary
+	{
+	public:
+		ShaderLibrary();
+		~ShaderLibrary();
+
+		void Add(const Ref<Shader>& shader);
+		void Load(const std::string& path);
+		void Load(const std::string& name, const std::string& path);
+
+		Ref<Shader>& Get(const std::string& name);
+	private:
+		std::unordered_map<std::string, Ref<Shader>> m_Shaders;
 	};
 
 }
