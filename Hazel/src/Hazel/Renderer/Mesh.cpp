@@ -17,6 +17,8 @@
 
 #include "imgui/imgui.h"
 
+#include "Hazel/Renderer/Renderer.h"
+
 namespace Hazel {
 
 	// Assimp 导入标志，控制模型导入时的处理方式
@@ -152,10 +154,7 @@ namespace Hazel {
 			}
 		}
 
-		HZ_CORE_TRACE("NODES:");
-		HZ_CORE_TRACE("-----------------------------");
 		TraverseNodes(scene->mRootNode);
-		HZ_CORE_TRACE("-----------------------------");
 
 		// 解析骨骼数据
 		if (m_IsAnimated)
@@ -235,12 +234,26 @@ namespace Hazel {
 	{
 	}
 
-	void Mesh::TraverseNodes(aiNode* node, int level)
+	void Mesh::OnUpdate(Timestep ts)
 	{
-		std::string levelText;
-		for (int i = 0; i < level; i++)
-			levelText += "-";
-		HZ_CORE_TRACE("{0}Node name: {1}", levelText, std::string(node->mName.data));
+		if (m_IsAnimated)
+		{
+			if (m_AnimationPlaying)
+			{
+				m_WorldTime += ts;
+
+				float ticksPerSecond = (float)(m_Scene->mAnimations[0]->mTicksPerSecond != 0 ? m_Scene->mAnimations[0]->mTicksPerSecond : 25.0f) * m_TimeMultiplier;
+				m_AnimationTime += ts * ticksPerSecond;
+					m_AnimationTime = fmod(m_AnimationTime, (float)m_Scene->mAnimations[0]->mDuration);
+			}
+
+			// TODO: We only need to recalc bones if rendering has been requested at the current animation frame
+			BoneTransform(m_AnimationTime);
+		}
+	}
+
+	void Mesh::TraverseNodes(aiNode* node)
+	{
 		for (uint32_t i = 0; i < node->mNumMeshes; i++)
 		{
 			uint32_t mesh = node->mMeshes[i];
@@ -248,10 +261,7 @@ namespace Hazel {
 		}
 
 		for (uint32_t i = 0; i < node->mNumChildren; i++)
-		{
-			aiNode* child = node->mChildren[i];
-			TraverseNodes(child, level + 1);
-		}
+			TraverseNodes(node->mChildren[i]);
 	}
 
 	// 查找动画时间对应的位置关键帧索引
@@ -425,60 +435,6 @@ namespace Hazel {
 		m_BoneTransforms.resize(m_BoneCount);
 		for (size_t i = 0; i < m_BoneCount; i++)
 			m_BoneTransforms[i] = m_BoneInfo[i].FinalTransformation;
-	}
-
-	// 渲染网格，支持骨骼动画
-	void Mesh::Render(TimeStep ts, Ref<MaterialInstance> materialInstance)
-	{
-		// 动画播放时更新动画时间
-		Render(ts, glm::mat4(1.0f), materialInstance);
-	}
-
-	void Mesh::Render(TimeStep ts, const glm::mat4& transform, Ref<MaterialInstance> materialInstance)
-	{
-		if (m_IsAnimated)
-		{
-			if (m_AnimationPlaying)
-			{
-				m_WorldTime += ts;
-
-				float ticksPerSecond = (float)(m_Scene->mAnimations[0]->mTicksPerSecond != 0 ? m_Scene->mAnimations[0]->mTicksPerSecond : 25.0f) * m_TimeMultiplier;
-				m_AnimationTime += ts * ticksPerSecond;
-				m_AnimationTime = fmod(m_AnimationTime, (float)m_Scene->mAnimations[0]->mDuration);
-			}
-
-			// 计算骨骼变换
-			BoneTransform(m_AnimationTime);
-		}
-
-		if (materialInstance)
-			materialInstance->Bind();
-
-		// 绑定顶点和索引缓冲区
-		m_VertexArray->Bind();
-		
-		bool materialOverride = !!materialInstance;
-
-		// 设置顶点属性指针并绘制所有子网格
-		HZ_RENDER_S2(transform, materialOverride, {
-			for (Submesh& submesh : self->m_Submeshes)
-			{
-				if (self->m_IsAnimated)
-				{
-					// 上传骨骼变换到着色器
-					for (size_t i = 0; i < self->m_BoneTransforms.size(); i++)
-					{
-						std::string uniformName = std::string("u_BoneTransforms[") + std::to_string(i) + std::string("]");
-						self->m_MeshShader->SetMat4FromRenderThread(uniformName, self->m_BoneTransforms[i]);
-					}
-				}
-
-				if (!materialOverride)
-					self->m_MeshShader->SetMat4FromRenderThread("u_ModelMatrix", transform * submesh.Transform);
-				
-				glDrawElementsBaseVertex(GL_TRIANGLES, submesh.IndexCount, GL_UNSIGNED_INT, (void*)(sizeof(uint32_t)* submesh.BaseIndex), submesh.BaseVertex);
-			}
-		});
 	}
 
 	// ImGui 调试界面

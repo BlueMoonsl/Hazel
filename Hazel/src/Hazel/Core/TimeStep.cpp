@@ -1,9 +1,9 @@
 #include "hzpch.h"
-#include "TimeStep.h"
+#include "Timestep.h"
 
 namespace Hazel {
 
-	TimeStep::TimeStep(float time)
+	Timestep::Timestep(float time)
 		: m_Time(time)
 	{
 	}

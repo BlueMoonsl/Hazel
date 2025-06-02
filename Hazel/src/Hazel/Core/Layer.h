@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Hazel/Core/Base.h"
-#include "Hazel/Core/TimeStep.h"
+#include "Hazel/Core/Timestep.h"
 
 namespace Hazel {
 
@@ -14,7 +14,7 @@ namespace Hazel {
 
 		virtual void OnAttach() {}					// 附加到LayerStack时调用
 		virtual void OnDetach() {}					// 从LayerStack分离时调用
-		virtual void OnUpdate(TimeStep ts) {}		// 每帧更新时调用
+		virtual void OnUpdate(Timestep ts) {}		// 每帧更新时调用
 		virtual void OnImGuiRender() {}				// ImGui渲染时回调
 		virtual void OnEvent(Event& event) {}		// 事件处理时回调
 

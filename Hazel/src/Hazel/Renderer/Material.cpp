@@ -189,6 +189,8 @@ namespace Hazel {
 	// 绑定材质实例：设置 Uniform 缓冲区并绑定纹理
 	void MaterialInstance::Bind() const
 	{
+		m_Material->m_Shader->Bind();
+
 		if (m_VSUniformStorageBuffer)
 			m_Material->m_Shader->SetVSMaterialUniformBuffer(m_VSUniformStorageBuffer);
 

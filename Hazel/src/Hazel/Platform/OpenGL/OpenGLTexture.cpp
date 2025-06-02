@@ -39,20 +39,21 @@ namespace Hazel {
 		: m_Format(format), m_Width(width), m_Height(height), m_Wrap(wrap)
 	{
 		auto self = this;
-		HZ_RENDER_1(self, {
-			glGenTextures(1, &self->m_RendererID);
-			glBindTexture(GL_TEXTURE_2D, self->m_RendererID);
+		Renderer::Submit([this]()
+		{
+			glGenTextures(1, &m_RendererID);
+			glBindTexture(GL_TEXTURE_2D, m_RendererID);
 
 			// 设置纹理参数
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			GLenum wrap = self->m_Wrap == TextureWrap::Clamp ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+			GLenum wrap = m_Wrap == TextureWrap::Clamp ? GL_CLAMP_TO_EDGE : GL_REPEAT;
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap);
-			glTextureParameterf(self->m_RendererID, GL_TEXTURE_MAX_ANISOTROPY, RendererAPI::GetCapabilities().MaxAnisotropy);
+			glTextureParameterf(m_RendererID, GL_TEXTURE_MAX_ANISOTROPY, RendererAPI::GetCapabilities().MaxAnisotropy);
 
 			// 分配纹理存储空间
-			glTexImage2D(GL_TEXTURE_2D, 0, HazelToOpenGLTextureFormat(self->m_Format), self->m_Width, self->m_Height, 0, HazelToOpenGLTextureFormat(self->m_Format), GL_UNSIGNED_BYTE, nullptr);
+			glTexImage2D(GL_TEXTURE_2D, 0, HazelToOpenGLTextureFormat(m_Format), m_Width, m_Height, 0, HazelToOpenGLTextureFormat(m_Format), GL_UNSIGNED_BYTE, nullptr);
 			glGenerateMipmap(GL_TEXTURE_2D);
 
 			glBindTexture(GL_TEXTURE_2D, 0);
@@ -71,54 +72,55 @@ namespace Hazel {
 		m_Height = height;
 		m_Format = TextureFormat::RGBA;
 
-		HZ_RENDER_S1(srgb, {
+		Renderer::Submit([this, srgb]()
+		{
 			// sRGB 纹理与普通纹理的创建方式略有不同
 			if (srgb)
 			{
-				glCreateTextures(GL_TEXTURE_2D, 1, &self->m_RendererID);
-				int levels = CalculateMipMapCount(self->m_Width, self->m_Height);
+				glCreateTextures(GL_TEXTURE_2D, 1, &m_RendererID);
+				int levels = CalculateMipMapCount(m_Width, m_Height);
 				HZ_CORE_INFO("Creating srgb texture width {0} mips", levels);
-				glTextureStorage2D(self->m_RendererID, levels, GL_SRGB8, self->m_Width, self->m_Height);
-				glTextureParameteri(self->m_RendererID, GL_TEXTURE_MIN_FILTER, levels > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
-				glTextureParameteri(self->m_RendererID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTextureStorage2D(m_RendererID, levels, GL_SRGB8, m_Width, m_Height); 
+				glTextureParameteri(m_RendererID, GL_TEXTURE_MIN_FILTER, levels > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+				glTextureParameteri(m_RendererID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-				glTextureSubImage2D(self->m_RendererID, 0, 0, 0, self->m_Width, self->m_Height, GL_RGB, GL_UNSIGNED_BYTE, self->m_ImageData.Data);
-				glGenerateTextureMipmap(self->m_RendererID);
+				glTextureSubImage2D(m_RendererID, 0, 0, 0, m_Width, m_Height, GL_RGB, GL_UNSIGNED_BYTE, m_ImageData.Data);
+				glGenerateTextureMipmap(m_RendererID);
 			}
 			else
 			{
-				glGenTextures(1, &self->m_RendererID);
-				glBindTexture(GL_TEXTURE_2D, self->m_RendererID);
+				glGenTextures(1, &m_RendererID);
+				glBindTexture(GL_TEXTURE_2D, m_RendererID);
 
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-				glTexImage2D(GL_TEXTURE_2D, 0, HazelToOpenGLTextureFormat(self->m_Format), self->m_Width, self->m_Height, 0, srgb ? GL_SRGB8 : HazelToOpenGLTextureFormat(self->m_Format), GL_UNSIGNED_BYTE, self->m_ImageData.Data);
+				glTexImage2D(GL_TEXTURE_2D, 0, HazelToOpenGLTextureFormat(m_Format), m_Width, m_Height, 0, srgb ? GL_SRGB8 : HazelToOpenGLTextureFormat(m_Format), GL_UNSIGNED_BYTE, m_ImageData.Data);
 				glGenerateMipmap(GL_TEXTURE_2D);
 
 				glBindTexture(GL_TEXTURE_2D, 0);
 			}
 			// 释放 stb_image 加载的图像数据
-			stbi_image_free(self->m_ImageData.Data);
-			});
+			stbi_image_free(m_ImageData.Data);
+		});
 	}
 
 	// 析构函数：释放 OpenGL 纹理资源
 	OpenGLTexture2D::~OpenGLTexture2D()
 	{
-		HZ_RENDER_S({
-			glDeleteTextures(1, &self->m_RendererID);
+		Renderer::Submit([this]() {
+			glDeleteTextures(1, &m_RendererID);
 		});
 	}
 
 	// 绑定 2D 纹理到指定纹理槽
 	void OpenGLTexture2D::Bind(uint32_t slot) const
 	{
-		HZ_RENDER_S1(slot, {
-			glBindTextureUnit(slot, self->m_RendererID);
-			});
+		Renderer::Submit([this, slot]() {
+			glBindTextureUnit(slot, m_RendererID);
+		});
 	}
 
 	// 锁定纹理，允许写入
@@ -131,9 +133,9 @@ namespace Hazel {
 	void OpenGLTexture2D::Unlock()
 	{
 		m_Locked = false;
-		HZ_RENDER_S({
-			glTextureSubImage2D(self->m_RendererID, 0, 0, 0, self->m_Width, self->m_Height, HazelToOpenGLTextureFormat(self->m_Format), GL_UNSIGNED_BYTE, self->m_ImageData.Data);
-			});
+		Renderer::Submit([this]() {
+			glTextureSubImage2D(m_RendererID, 0, 0, 0, m_Width, m_Height, HazelToOpenGLTextureFormat(m_Format), GL_UNSIGNED_BYTE, m_ImageData.Data);
+		});
 	}
 
 	// 调整纹理大小（需先锁定）
@@ -218,18 +220,18 @@ namespace Hazel {
 			faceIndex++;
 		}
 
-		HZ_RENDER_S3(faces, faceWidth, faceHeight, {
-			glGenTextures(1, &self->m_RendererID);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, self->m_RendererID);
+		Renderer::Submit([=]() {
+			glGenTextures(1, &m_RendererID);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, m_RendererID);
 
 			// 设置立方体纹理参数
 			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTextureParameterf(self->m_RendererID, GL_TEXTURE_MAX_ANISOTROPY, RendererAPI::GetCapabilities().MaxAnisotropy);
+			glTextureParameterf(m_RendererID, GL_TEXTURE_MAX_ANISOTROPY, RendererAPI::GetCapabilities().MaxAnisotropy);
 
-			auto format = HazelToOpenGLTextureFormat(self->m_Format);
+			auto format = HazelToOpenGLTextureFormat(m_Format);
 			// 上传 6 个面的数据到 OpenGL
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, format, faceWidth, faceHeight, 0, format, GL_UNSIGNED_BYTE, faces[2]);
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, format, faceWidth, faceHeight, 0, format, GL_UNSIGNED_BYTE, faces[0]);
@@ -249,7 +251,7 @@ namespace Hazel {
 				delete[] faces[i];
 
 			// 释放原始图像数据
-			stbi_image_free(self->m_ImageData);
+			stbi_image_free(m_ImageData);
 			});
 	}
 
@@ -257,16 +259,16 @@ namespace Hazel {
 	OpenGLTextureCube::~OpenGLTextureCube()
 	{
 		auto self = this;
-		HZ_RENDER_1(self, {
-			glDeleteTextures(1, &self->m_RendererID);
+		Renderer::Submit([this]() {
+			glDeleteTextures(1, &m_RendererID);
 		});
 	}
 
 	// 绑定立方体纹理到指定纹理槽
 	void OpenGLTextureCube::Bind(uint32_t slot) const
 	{
-		HZ_RENDER_S1(slot, {
-			glBindTextureUnit(slot, self->m_RendererID);
+		Renderer::Submit([this, slot]() {
+			glBindTextureUnit(slot, m_RendererID);
 		});
 	}
 }

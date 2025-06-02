@@ -7,6 +7,8 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
+#include "Hazel/Renderer/Renderer.h"
+
 namespace Hazel {
 
 #define UNIFORM_LOGGING 0
@@ -47,22 +49,23 @@ namespace Hazel {
 		m_ShaderSource = PreProcess(source);
 		Parse();
 
-		HZ_RENDER_S({
-			if (self->m_RendererID)
-				glDeleteShader(self->m_RendererID);
+		Renderer::Submit([this]()
+		{
+			if (m_RendererID)
+				glDeleteShader(m_RendererID);
 
-			self->CompileAndUploadShader();
-			self->ResolveUniforms();
-			self->ValidateUniforms();
+			CompileAndUploadShader();
+			ResolveUniforms(); 
+			ValidateUniforms();
 
-			if (self->m_Loaded)
+			if (m_Loaded)
 			{
-				for (auto& callback : self->m_ShaderReloadedCallbacks)
+				for (auto& callback : m_ShaderReloadedCallbacks)
 					callback();
 			}
 
-			self->m_Loaded = true;
-			});
+			m_Loaded = true;
+		});
 	}
 
 	// 添加着色器重新加载回调
@@ -74,9 +77,9 @@ namespace Hazel {
 	// 绑定着色器到渲染管线
 	void OpenGLShader::Bind()
 	{
-		HZ_RENDER_S({
-			glUseProgram(self->m_RendererID);
-			});
+		Renderer::Submit([this]() {
+			glUseProgram(m_RendererID);
+		});
 	}
 
 	// 从文件读取着色器源码
@@ -629,19 +632,19 @@ namespace Hazel {
 	// 设置顶点着色器材质 Uniform 缓冲区
 	void OpenGLShader::SetVSMaterialUniformBuffer(Buffer buffer)
 	{
-		HZ_RENDER_S1(buffer, {
-			glUseProgram(self->m_RendererID);
-			self->ResolveAndSetUniforms(self->m_VSMaterialUniformBuffer, buffer);
-			});
+		Renderer::Submit([this, buffer]() {
+			glUseProgram(m_RendererID);
+			ResolveAndSetUniforms(m_VSMaterialUniformBuffer, buffer);
+		});
 	}
 
 	// 设置片元着色器材质 Uniform 缓冲区
 	void OpenGLShader::SetPSMaterialUniformBuffer(Buffer buffer)
 	{
-		HZ_RENDER_S1(buffer, {
-			glUseProgram(self->m_RendererID);
-			self->ResolveAndSetUniforms(self->m_PSMaterialUniformBuffer, buffer);
-			});
+		Renderer::Submit([this, buffer]() {
+			glUseProgram(m_RendererID);
+			ResolveAndSetUniforms(m_PSMaterialUniformBuffer, buffer);
+		});
 	}
 
 	// 解析并设置 Uniform 缓冲区中的所有 Uniform
@@ -774,38 +777,38 @@ namespace Hazel {
 			const UniformDecl& decl = uniformBuffer.GetUniforms()[i];
 			switch (decl.Type)
 			{
-			case UniformType::Float:
-			{
-				const std::string& name = decl.Name;
-				float value = *(float*)(uniformBuffer.GetBuffer() + decl.Offset);
-				HZ_RENDER_S2(name, value, {
-					self->UploadUniformFloat(name, value);
-					});
-			}
-			case UniformType::Float3:
-			{
-				const std::string& name = decl.Name;
-				glm::vec3& values = *(glm::vec3*)(uniformBuffer.GetBuffer() + decl.Offset);
-				HZ_RENDER_S2(name, values, {
-					self->UploadUniformFloat3(name, values);
-					});
-			}
-			case UniformType::Float4:
-			{
-				const std::string& name = decl.Name;
-				glm::vec4& values = *(glm::vec4*)(uniformBuffer.GetBuffer() + decl.Offset);
-				HZ_RENDER_S2(name, values, {
-					self->UploadUniformFloat4(name, values);
-					});
-			}
-			case UniformType::Matrix4x4:
-			{
-				const std::string& name = decl.Name;
-				glm::mat4& values = *(glm::mat4*)(uniformBuffer.GetBuffer() + decl.Offset);
-				HZ_RENDER_S2(name, values, {
-					self->UploadUniformMat4(name, values);
-					});
-			}
+				case UniformType::Float:
+				{
+					const std::string& name = decl.Name;
+					float value = *(float*)(uniformBuffer.GetBuffer() + decl.Offset);
+					Renderer::Submit([=]() {
+						UploadUniformFloat(name, value);
+						});
+				}
+				case UniformType::Float3:
+				{
+					const std::string& name = decl.Name;
+					glm::vec3& values = *(glm::vec3*)(uniformBuffer.GetBuffer() + decl.Offset);
+					Renderer::Submit([=]() {
+						UploadUniformFloat3(name, values);
+						});
+				}
+				case UniformType::Float4:
+				{
+					const std::string& name = decl.Name;
+					glm::vec4& values = *(glm::vec4*)(uniformBuffer.GetBuffer() + decl.Offset);
+					Renderer::Submit([=]() {
+						UploadUniformFloat4(name, values);
+						});
+				}
+				case UniformType::Matrix4x4:
+				{
+					const std::string& name = decl.Name;
+					glm::mat4& values = *(glm::mat4*)(uniformBuffer.GetBuffer() + decl.Offset);
+					Renderer::Submit([=]() {
+						UploadUniformMat4(name, values);
+						});
+				}
 			}
 		}
 	}
@@ -813,23 +816,32 @@ namespace Hazel {
 	// 临时接口：设置 float 类型 Uniform
 	void OpenGLShader::SetFloat(const std::string& name, float value)
 	{
-		HZ_RENDER_S2(name, value, {
-			self->UploadUniformFloat(name, value);
+		Renderer::Submit([=]() {
+			UploadUniformFloat(name, value);
 			});
 	}
 
 	// 临时接口：设置 mat4 类型 Uniform
 	void OpenGLShader::SetMat4(const std::string& name, const glm::mat4& value)
 	{
-		HZ_RENDER_S2(name, value, {
-			self->UploadUniformMat4(name, value);
+		Renderer::Submit([=]() {
+			UploadUniformMat4(name, value);
 			});
 	}
 
 	// 渲染线程直接设置 mat4 类型 Uniform
-	void OpenGLShader::SetMat4FromRenderThread(const std::string& name, const glm::mat4& value)
+	void OpenGLShader::SetMat4FromRenderThread(const std::string& name, const glm::mat4& value, bool bind)
 	{
-		UploadUniformMat4(name, value);
+		if (bind)
+		{
+			UploadUniformMat4(name, value);
+		}
+		else
+		{
+			int location = glGetUniformLocation(m_RendererID, name.c_str());
+			if (location != -1)
+				UploadUniformMat4(location, value);
+		}
 	}
 
 	// 上传 int 类型 Uniform（通过 location）

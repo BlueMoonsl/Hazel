@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include <glm/glm.hpp>
-#include "Hazel/Core/TimeStep.h"
+#include "Hazel/Core/Timestep.h"
 
 namespace Hazel {
 
@@ -13,7 +13,7 @@ namespace Hazel {
 		Camera(const glm::mat4& projectionMatrix);
 
 		void Focus();				// 使相机聚焦到焦点位置
-		void Update(TimeStep ts);	// 更新相机状态（如响应输入、更新视图矩阵等）
+		void Update(Timestep ts);	// 更新相机状态（如响应输入、更新视图矩阵等）
 
 		// 获取/设置相机与焦点的距离
 		inline float GetDistance() const { return m_Distance; }

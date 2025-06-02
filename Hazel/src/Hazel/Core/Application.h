@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Hazel/Core/Base.h"
-#include "Hazel/Core/TimeStep.h"
+#include "Hazel/Core/Timestep.h"
 #include "Hazel/Core/Window.h"
 #include "Hazel/Core/LayerStack.h"
 
@@ -27,7 +27,7 @@ namespace Hazel {
 
 		virtual void OnInit() {}
 		virtual void OnShutdown() {}
-		virtual void OnUpdate(TimeStep ts) {}
+		virtual void OnUpdate(Timestep ts) {}
 
 		virtual void OnEvent(Event& event);
 
@@ -50,7 +50,7 @@ namespace Hazel {
 		bool m_Running = true, m_Minimized = false;
 		LayerStack m_LayerStack;
 		ImGuiLayer* m_ImGuiLayer;
-		TimeStep m_TimeStep;
+		Timestep m_TimeStep;
 
 		float m_LastFrameTime = 0.0f;
 

@@ -146,6 +146,9 @@
       <Filter>Hazel\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\hzpch.h" />
+    <ClInclude Include="src\Hazel\ImGui\ImGuizmo.h" />
+    <ClInclude Include="src\Hazel\Platform\OpenGL\OpenGLRenderPass.h" />
+    <ClInclude Include="src\Hazel\Renderer\RenderPass.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Hazel\Core\Application.cpp">
@@ -236,5 +239,8 @@
       <Filter>Hazel\Vendor</Filter>
     </ClCompile>
     <ClCompile Include="src\hzpch.cpp" />
+    <ClCompile Include="src\Hazel\ImGui\ImGuizmo.cpp" />
+    <ClCompile Include="src\Hazel\Platform\OpenGL\OpenGLRenderPass.cpp" />
+    <ClCompile Include="src\Hazel\Renderer\RenderPass.cpp" />
   </ItemGroup>
 </Project>

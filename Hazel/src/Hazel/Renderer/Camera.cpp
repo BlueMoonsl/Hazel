@@ -55,7 +55,7 @@ namespace Hazel {
 		return speed;
 	}
 
-	void Camera::Update(TimeStep ts)
+	void Camera::Update(Timestep ts)
 	{	
 		// 按下左alt启用鼠标控制
 		if (Input::IsKeyPressed(GLFW_KEY_LEFT_ALT))

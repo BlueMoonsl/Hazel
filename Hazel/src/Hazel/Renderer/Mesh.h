@@ -3,7 +3,7 @@
 #include <vector>
 #include <glm/glm.hpp>
 
-#include "Hazel/Core/TimeStep.h"
+#include "Hazel/Core/Timestep.h"
 
 #include "Hazel/Renderer/VertexArray.h"
 #include "Hazel/Renderer/Buffer.h"
@@ -125,8 +125,7 @@ namespace Hazel {
 		Mesh(const std::string& filename); // 从文件构造网格
 		~Mesh();
 
-		void Render(TimeStep ts, Ref<MaterialInstance> materialInstance = Ref<MaterialInstance>());
-		void Render(TimeStep ts, const glm::mat4& transform = glm::mat4(1.0f), Ref<MaterialInstance> materialInstance = Ref<MaterialInstance>());
+		void OnUpdate(Timestep ts);
 		void OnImGuiRender();                     // ImGui 调试界面
 		void DumpVertexBuffer();                  // 输出顶点缓冲区信息
 
@@ -137,7 +136,7 @@ namespace Hazel {
 		// 骨骼动画相关
 		void BoneTransform(float time);
 		void ReadNodeHierarchy(float AnimationTime, const aiNode* pNode, const glm::mat4& ParentTransform);
-		void TraverseNodes(aiNode* node, int level = 0);
+		void TraverseNodes(aiNode* node);
 
 		const aiNodeAnim* FindNodeAnim(const aiAnimation* animation, const std::string& nodeName);
 		uint32_t FindPosition(float AnimationTime, const aiNodeAnim* pNodeAnim);
@@ -177,5 +176,7 @@ namespace Hazel {
 		bool m_AnimationPlaying = true;
 
 		std::string m_FilePath;	// 网格文件路径
+
+		friend class Renderer;
 	};
 }

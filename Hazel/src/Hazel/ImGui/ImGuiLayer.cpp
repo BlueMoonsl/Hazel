@@ -2,6 +2,7 @@
 #include "ImGuiLayer.h"
 
 #include "imgui.h"
+#include "ImGuizmo.h"
 
 // ImGui GLFW 和 OpenGL3 后端实现
 #define IMGUI_IMPL_API
@@ -83,6 +84,7 @@ namespace Hazel {
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
+		ImGuizmo::BeginFrame();
 	}
 
 	// 每帧结束时调用，渲染ImGui内容
