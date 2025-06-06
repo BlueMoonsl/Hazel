@@ -17,6 +17,7 @@
 
 // --- Hazel Render API ------------------------------
 #include "Hazel/Renderer/Renderer.h"
+#include "Hazel/Renderer/SceneRenderer.h"
 #include "Hazel/Renderer/RenderPass.h"
 #include "Hazel/Renderer/Framebuffer.h"
 #include "Hazel/Renderer/Buffer.h"
@@ -27,3 +28,7 @@
 #include "Hazel/Renderer/Camera.h"
 #include "Hazel/Renderer/Material.h"
 // ---------------------------------------------------
+
+// Scenes
+#include "Hazel/Scene/Entity.h"
+#include "Hazel/Scene/Scene.h"

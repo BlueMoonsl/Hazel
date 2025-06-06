@@ -1,5 +1,5 @@
 ﻿#include "hzpch.h"
-#include "WindowsInput.h"
+#include "Hazel/Core/Input.h"
 #include "WindowsWindow.h"
 
 #include "Hazel/Core/Application.h"
@@ -8,10 +8,7 @@
 
 namespace Hazel {
 
-	Input* Input::s_Instance = new WindowsInput;
-
-	// 检查指定键是否被按下（包括长按重复）
-	bool WindowsInput::IsKeyPressedImpl(int keycode)
+	bool Input::IsKeyPressed(int keycode)
 	{
 		auto& window = static_cast<WindowsWindow&>(Application::Get().GetWindow());
 		// 获取键盘按键状态
@@ -20,7 +17,7 @@ namespace Hazel {
 	}
 
 	// 检查指定鼠标按钮是否被按下
-	bool WindowsInput::IsMouseButtonPressedImpl(int button)
+	bool Input::IsMouseButtonPressed(int button)
 	{
 		auto& window = static_cast<WindowsWindow&>(Application::Get().GetWindow());
 		// 获取鼠标按钮状态
@@ -29,7 +26,7 @@ namespace Hazel {
 	}
 
 	// 获取鼠标当前的 X 坐标
-	float WindowsInput::GetMouseXImpl()
+	float Input::GetMouseX()
 	{
 		auto& window = static_cast<WindowsWindow&>(Application::Get().GetWindow());
 		double xpos, ypos;
@@ -39,7 +36,7 @@ namespace Hazel {
 	}
 
 	// 获取鼠标当前的 Y 坐标
-	float WindowsInput::GetMouseYImpl()
+	float Input::GetMouseY()
 	{
 		auto& window = static_cast<WindowsWindow&>(Application::Get().GetWindow());
 		double xpos, ypos;

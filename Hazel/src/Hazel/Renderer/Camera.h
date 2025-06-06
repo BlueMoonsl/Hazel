@@ -9,7 +9,7 @@ namespace Hazel {
 	class Camera
 	{
 	public:
-		// 构造函数，传入投影矩阵初始化相机
+		Camera() = default;
 		Camera(const glm::mat4& projectionMatrix);
 
 		void Focus();				// 使相机聚焦到焦点位置
@@ -33,6 +33,9 @@ namespace Hazel {
 		glm::vec3 GetForwardDirection();
 		// 获取相机当前位置
 		const glm::vec3& GetPosition() const { return m_Position; }
+
+		float GetExposure() const { return m_Exposure; }
+		float& GetExposure() { return m_Exposure; }
 	private:
 		void MousePan(const glm::vec2& delta);				// 鼠标平移
 		void MouseRotate(const glm::vec2& delta);			// 鼠标旋转
@@ -55,6 +58,8 @@ namespace Hazel {
 		float m_Distance;									// 相机与焦点的距离
 		float m_Pitch, m_Yaw;								// 俯仰角和偏航角（欧拉角）
 		
+		float m_Exposure = 0.8f;
+
 		uint32_t m_ViewportWidth = 1280, m_ViewportHeight = 720;
 	};
 

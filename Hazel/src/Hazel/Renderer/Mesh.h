@@ -126,17 +126,18 @@ namespace Hazel {
 		~Mesh();
 
 		void OnUpdate(Timestep ts);
-		void OnImGuiRender();                     // ImGui 调试界面
 		void DumpVertexBuffer();                  // 输出顶点缓冲区信息
 
-		inline Ref<Shader> GetMeshShader() { return m_MeshShader; }
-		inline Ref<Material> GetMaterial() { return m_Material; }
-		inline const std::string& GetFilePath() const { return m_FilePath; }	// 获取网格文件路径
+		Ref<Shader> GetMeshShader() { return m_MeshShader; }
+		Ref<Material> GetMaterial() { return m_BaseMaterial; }
+		std::vector<Ref<MaterialInstance>> GetMaterials() { return m_Materials; }
+		const std::vector<Ref<Texture2D>>& GetTextures() const { return m_Textures; }
+		const std::string& GetFilePath() const { return m_FilePath; }
 	private:
 		// 骨骼动画相关
 		void BoneTransform(float time);
 		void ReadNodeHierarchy(float AnimationTime, const aiNode* pNode, const glm::mat4& ParentTransform);
-		void TraverseNodes(aiNode* node);
+		void TraverseNodes(aiNode* node, const glm::mat4& parentTransform = glm::mat4(1.0f), uint32_t level = 0);
 
 		const aiNodeAnim* FindNodeAnim(const aiAnimation* animation, const std::string& nodeName);
 		uint32_t FindPosition(float AnimationTime, const aiNodeAnim* pNodeAnim);
@@ -166,7 +167,10 @@ namespace Hazel {
 
 		// Materials
 		Ref<Shader> m_MeshShader;
-		Ref<Material> m_Material;
+		Ref<Material> m_BaseMaterial;
+		std::vector<Ref<Texture2D>> m_Textures;
+		std::vector<Ref<Texture2D>> m_NormalMaps;
+		std::vector<Ref<MaterialInstance>> m_Materials;;
 
 		// 动画相关
 		bool m_IsAnimated = false;
@@ -178,5 +182,6 @@ namespace Hazel {
 		std::string m_FilePath;	// 网格文件路径
 
 		friend class Renderer;
+		friend class SceneHierarchyPanel;
 	};
 }
