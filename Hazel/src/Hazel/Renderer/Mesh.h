@@ -10,6 +10,8 @@
 #include "Hazel/Renderer/Shader.h"
 #include "Hazel/Renderer/Material.h"
 
+#include "Hazel/Core/Math/AABB.h"
+
 struct aiNode;
 struct aiAnimation;
 struct aiNodeAnim;
@@ -106,6 +108,15 @@ namespace Hazel {
 		}
 	};
 
+	struct Triangle
+	{
+		Vertex V0, V1, V2;
+
+		Triangle(const Vertex& v0, const Vertex& v1, const Vertex& v2)
+			: V0(v0), V1(v1), V2(v2) {
+		}
+	};
+
 	// 子网格（Submesh）结构体，描述一个独立渲染的网格片段
 	class Submesh
 	{
@@ -116,7 +127,9 @@ namespace Hazel {
 		uint32_t IndexCount;     // 索引数量
 
 		glm::mat4 Transform;
-		glm::vec3 Min, Max; // TODO: AABB
+		AABB BoundingBox;
+
+		std::string NodeName, MeshName;
 	};
 
 	// 网格（Mesh）类，支持 Assimp 导入、骨骼动画、渲染等
@@ -129,11 +142,16 @@ namespace Hazel {
 		void OnUpdate(Timestep ts);
 		void DumpVertexBuffer();                  // 输出顶点缓冲区信息
 
+		std::vector<Submesh>& GetSubmeshes() { return m_Submeshes; }
+		const std::vector<Submesh>& GetSubmeshes() const { return m_Submeshes; }
+
 		Ref<Shader> GetMeshShader() { return m_MeshShader; }
 		Ref<Material> GetMaterial() { return m_BaseMaterial; }
 		std::vector<Ref<MaterialInstance>> GetMaterials() { return m_Materials; }
 		const std::vector<Ref<Texture2D>>& GetTextures() const { return m_Textures; }
 		const std::string& GetFilePath() const { return m_FilePath; }
+
+		const std::vector<Triangle> GetTriangleCache(uint32_t index) const { return m_TriangleCache.at(index); }
 	private:
 		// 骨骼动画相关
 		void BoneTransform(float time);
@@ -172,6 +190,8 @@ namespace Hazel {
 		std::vector<Ref<Texture2D>> m_Textures;
 		std::vector<Ref<Texture2D>> m_NormalMaps;
 		std::vector<Ref<MaterialInstance>> m_Materials;;
+
+		std::unordered_map<uint32_t, std::vector<Triangle>> m_TriangleCache;
 
 		// 动画相关
 		bool m_IsAnimated = false;

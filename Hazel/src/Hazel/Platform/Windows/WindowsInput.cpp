@@ -28,21 +28,24 @@ namespace Hazel {
 	// 获取鼠标当前的 X 坐标
 	float Input::GetMouseX()
 	{
-		auto& window = static_cast<WindowsWindow&>(Application::Get().GetWindow());
-		double xpos, ypos;
-		// 获取鼠标当前位置
-		glfwGetCursorPos(static_cast<GLFWwindow*>(window.GetNativeWindow()), &xpos, &ypos);
-		return (float)xpos;
+		auto [x, y] = GetMousePosition(); 
+		return (float)x;
 	}
 
 	// 获取鼠标当前的 Y 坐标
 	float Input::GetMouseY()
 	{
+		auto [x, y] = GetMousePosition();
+		return (float)y;
+	}
+
+	std::pair<float, float> Input::GetMousePosition()
+	{
 		auto& window = static_cast<WindowsWindow&>(Application::Get().GetWindow());
-		double xpos, ypos;
-		// 获取鼠标当前位置
-		glfwGetCursorPos(static_cast<GLFWwindow*>(window.GetNativeWindow()), &xpos, &ypos);
-		return (float)ypos;
+
+		double x, y;
+		glfwGetCursorPos(static_cast<GLFWwindow*>(window.GetNativeWindow()), &x, &y);
+		return { (float)x, (float)y };
 	}
 
 }

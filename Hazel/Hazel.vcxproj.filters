@@ -10,6 +10,12 @@
     <Filter Include="Hazel\Core\Events">
       <UniqueIdentifier>{55D47E96-C1EA-7C2C-0A62-084E76B74DB4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Hazel\Core\Math">
+      <UniqueIdentifier>{0ABD9040-7648-FE04-7F59-81F9EB635A05}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Hazel\Editor">
+      <UniqueIdentifier>{AF804FFD-9BE3-DEA1-4469-175830ABAA24}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Hazel\ImGui">
       <UniqueIdentifier>{83AD5E9B-EF62-D790-7857-D167E40BCE94}</UniqueIdentifier>
     </Filter>
@@ -24,6 +30,9 @@
     </Filter>
     <Filter Include="Hazel\Renderer">
       <UniqueIdentifier>{5F4907E6-4B17-FBEB-34AB-6B122018D750}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Hazel\Scene">
+      <UniqueIdentifier>{76A50E9C-E25A-8791-6B4F-8168D7037E95}</UniqueIdentifier>
     </Filter>
     <Filter Include="Hazel\Vendor">
       <UniqueIdentifier>{B6C50B25-A228-9BC9-4BAE-D37F37F0664C}</UniqueIdentifier>
@@ -70,6 +79,15 @@
     <ClInclude Include="src\Hazel\Core\Log.h">
       <Filter>Hazel\Core</Filter>
     </ClInclude>
+    <ClInclude Include="src\Hazel\Core\Math\AABB.h">
+      <Filter>Hazel\Core\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Hazel\Core\Math\Mat4.h">
+      <Filter>Hazel\Core\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Hazel\Core\Math\Ray.h">
+      <Filter>Hazel\Core\Math</Filter>
+    </ClInclude>
     <ClInclude Include="src\Hazel\Core\Platform.h">
       <Filter>Hazel\Core</Filter>
     </ClInclude>
@@ -78,6 +96,9 @@
     </ClInclude>
     <ClInclude Include="src\Hazel\Core\Window.h">
       <Filter>Hazel\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Hazel\Editor\SceneHierarchyPanel.h">
+      <Filter>Hazel\Editor</Filter>
     </ClInclude>
     <ClInclude Include="src\Hazel\EntryPoint.h">
       <Filter>Hazel</Filter>
@@ -136,7 +157,13 @@
     <ClInclude Include="src\Hazel\Renderer\Renderer.h">
       <Filter>Hazel\Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="src\Hazel\Renderer\Renderer2D.h">
+      <Filter>Hazel\Renderer</Filter>
+    </ClInclude>
     <ClInclude Include="src\Hazel\Renderer\RendererAPI.h">
+      <Filter>Hazel\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Hazel\Renderer\SceneRenderer.h">
       <Filter>Hazel\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\Hazel\Renderer\Shader.h">
@@ -151,13 +178,13 @@
     <ClInclude Include="src\Hazel\Renderer\VertexArray.h">
       <Filter>Hazel\Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="src\Hazel\Scene\Entity.h">
+      <Filter>Hazel\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Hazel\Scene\Scene.h">
+      <Filter>Hazel\Scene</Filter>
+    </ClInclude>
     <ClInclude Include="src\hzpch.h" />
-    <ClInclude Include="src\Hazel\Core\Math\Mat4.h" />
-    <ClInclude Include="src\Hazel\Editor\SceneHierarchyPanel.h" />
-    <ClInclude Include="src\Hazel\Renderer\SceneRenderer.h" />
-    <ClInclude Include="src\Hazel\Scene\Entity.h" />
-    <ClInclude Include="src\Hazel\Scene\Scene.h" />
-    <ClInclude Include="src\Hazel\Renderer\Renderer2D.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Hazel\Core\Application.cpp">
@@ -175,11 +202,17 @@
     <ClCompile Include="src\Hazel\Core\Log.cpp">
       <Filter>Hazel\Core</Filter>
     </ClCompile>
+    <ClCompile Include="src\Hazel\Core\Math\Mat4.cpp">
+      <Filter>Hazel\Core\Math</Filter>
+    </ClCompile>
     <ClCompile Include="src\Hazel\Core\TimeStep.cpp">
       <Filter>Hazel\Core</Filter>
     </ClCompile>
     <ClCompile Include="src\Hazel\Core\Window.cpp">
       <Filter>Hazel\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Hazel\Editor\SceneHierarchyPanel.cpp">
+      <Filter>Hazel\Editor</Filter>
     </ClCompile>
     <ClCompile Include="src\Hazel\ImGui\ImGuiBuild.cpp">
       <Filter>Hazel\ImGui</Filter>
@@ -244,6 +277,12 @@
     <ClCompile Include="src\Hazel\Renderer\Renderer.cpp">
       <Filter>Hazel\Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="src\Hazel\Renderer\Renderer2D.cpp">
+      <Filter>Hazel\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Hazel\Renderer\SceneRenderer.cpp">
+      <Filter>Hazel\Renderer</Filter>
+    </ClCompile>
     <ClCompile Include="src\Hazel\Renderer\Shader.cpp">
       <Filter>Hazel\Renderer</Filter>
     </ClCompile>
@@ -253,15 +292,15 @@
     <ClCompile Include="src\Hazel\Renderer\VertexArray.cpp">
       <Filter>Hazel\Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="src\Hazel\Scene\Entity.cpp">
+      <Filter>Hazel\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Hazel\Scene\Scene.cpp">
+      <Filter>Hazel\Scene</Filter>
+    </ClCompile>
     <ClCompile Include="src\Hazel\Vendor\stb_image.cpp">
       <Filter>Hazel\Vendor</Filter>
     </ClCompile>
     <ClCompile Include="src\hzpch.cpp" />
-    <ClCompile Include="src\Hazel\Core\Math\Mat4.cpp" />
-    <ClCompile Include="src\Hazel\Editor\SceneHierarchyPanel.cpp" />
-    <ClCompile Include="src\Hazel\Renderer\SceneRenderer.cpp" />
-    <ClCompile Include="src\Hazel\Scene\Entity.cpp" />
-    <ClCompile Include="src\Hazel\Scene\Scene.cpp" />
-    <ClCompile Include="src\Hazel\Renderer\Renderer2D.cpp" />
   </ItemGroup>
 </Project>

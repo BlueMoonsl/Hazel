@@ -14,6 +14,9 @@
 #include "Hazel/Core/Events/KeyEvent.h"
 #include "Hazel/Core/Events/MouseEvent.h"
 
+#include "Hazel/Core/Math/AABB.h"
+#include "Hazel/Core/Math/Ray.h"
+
 #include "imgui/imgui.h"
 
 // --- Hazel Render API ------------------------------

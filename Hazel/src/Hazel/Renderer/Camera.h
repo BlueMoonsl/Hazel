@@ -40,6 +40,8 @@ namespace Hazel {
 		float GetExposure() const { return m_Exposure; }
 		float& GetExposure() { return m_Exposure; }
 	private:
+		void UpdateCameraView();
+
 		bool OnMouseScroll(MouseScrolledEvent& e);
 
 		void MousePan(const glm::vec2& delta);				// 鼠标平移

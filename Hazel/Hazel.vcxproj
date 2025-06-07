@@ -160,7 +160,9 @@
     <ClInclude Include="src\Hazel\Core\Layer.h" />
     <ClInclude Include="src\Hazel\Core\LayerStack.h" />
     <ClInclude Include="src\Hazel\Core\Log.h" />
+    <ClInclude Include="src\Hazel\Core\Math\AABB.h" />
     <ClInclude Include="src\Hazel\Core\Math\Mat4.h" />
+    <ClInclude Include="src\Hazel\Core\Math\Ray.h" />
     <ClInclude Include="src\Hazel\Core\Platform.h" />
     <ClInclude Include="src\Hazel\Core\TimeStep.h" />
     <ClInclude Include="src\Hazel\Core\Window.h" />
@@ -182,9 +184,9 @@
     <ClInclude Include="src\Hazel\Renderer\Material.h" />
     <ClInclude Include="src\Hazel\Renderer\Mesh.h" />
     <ClInclude Include="src\Hazel\Renderer\RenderCommandQueue.h" />
-    <ClInclude Include="src\Hazel\Renderer\Renderer2D.h" />
     <ClInclude Include="src\Hazel\Renderer\RenderPass.h" />
     <ClInclude Include="src\Hazel\Renderer\Renderer.h" />
+    <ClInclude Include="src\Hazel\Renderer\Renderer2D.h" />
     <ClInclude Include="src\Hazel\Renderer\RendererAPI.h" />
     <ClInclude Include="src\Hazel\Renderer\SceneRenderer.h" />
     <ClInclude Include="src\Hazel\Renderer\Shader.h" />
@@ -224,9 +226,9 @@
     <ClCompile Include="src\Hazel\Renderer\Material.cpp" />
     <ClCompile Include="src\Hazel\Renderer\Mesh.cpp" />
     <ClCompile Include="src\Hazel\Renderer\RenderCommandQueue.cpp" />
-    <ClCompile Include="src\Hazel\Renderer\Renderer2D.cpp" />
     <ClCompile Include="src\Hazel\Renderer\RenderPass.cpp" />
     <ClCompile Include="src\Hazel\Renderer\Renderer.cpp" />
+    <ClCompile Include="src\Hazel\Renderer\Renderer2D.cpp" />
     <ClCompile Include="src\Hazel\Renderer\SceneRenderer.cpp" />
     <ClCompile Include="src\Hazel\Renderer\Shader.cpp" />
     <ClCompile Include="src\Hazel\Renderer\Texture.cpp" />

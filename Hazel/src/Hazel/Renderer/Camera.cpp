@@ -15,15 +15,27 @@ namespace Hazel {
 
 	Camera::Camera(const glm::mat4& projectionMatrix)
 		: m_ProjectionMatrix(projectionMatrix)
-	{
-		m_Position = { -5, 5, 5 };					
+	{				
 		m_Rotation = glm::vec3(90.0f, 0.0f, 0.0f);				// 相机旋转
-
 		m_FocalPoint = glm::vec3(0.0f);							// 焦点位置
-		m_Distance = glm::distance(m_Position, m_FocalPoint);	// 相机到焦点距离
+
+		glm::vec3 position = { -5, 5, 5 };
+		m_Distance = glm::distance(position, m_FocalPoint);
 
 		m_Yaw = 3.0f * (float)M_PI / 4.0f;						// 偏航角
 		m_Pitch = M_PI / 4.0f;									// 俯仰角
+
+		UpdateCameraView();
+	}
+
+	void Camera::UpdateCameraView()
+	{
+		m_Position = CalculatePosition();
+
+		glm::quat orientation = GetOrientation();
+		m_Rotation = glm::eulerAngles(orientation) * (180.0f / (float)M_PI);
+		m_ViewMatrix = glm::translate(glm::mat4(1.0f), m_Position) * glm::toMat4(orientation);
+		m_ViewMatrix = glm::inverse(m_ViewMatrix);
 	}
 
 	void Camera::Focus()
@@ -75,13 +87,7 @@ namespace Hazel {
 		}
 
 		// 更新相机参数
-		m_Position = CalculatePosition();
-
-		glm::quat orientation = GetOrientation();
-		m_Rotation = glm::eulerAngles(orientation) * (180.0f / (float)M_PI);
-		m_ViewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 1)) * glm::toMat4(glm::conjugate(orientation)) * glm::translate(glm::mat4(1.0f), -m_Position);
-		m_ViewMatrix = glm::translate(glm::mat4(1.0f), m_Position) * glm::toMat4(orientation);
-		m_ViewMatrix = glm::inverse(m_ViewMatrix);
+		UpdateCameraView();
 	}
 
 	void Camera::OnEvent(Event& e)
@@ -92,7 +98,6 @@ namespace Hazel {
 
 	bool Camera::OnMouseScroll(MouseScrolledEvent& e)
 	{
-
 		float delta = e.GetYOffset() * 0.1f;
 		MouseZoom(delta);
 		return false;
