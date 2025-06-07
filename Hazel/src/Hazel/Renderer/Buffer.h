@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "RendererAPI.h"
 
@@ -13,17 +13,17 @@ namespace Hazel {
 	{
 		switch (type)
 		{
-		case ShaderDataType::Float:    return 4;
-		case ShaderDataType::Float2:   return 4 * 2;
-		case ShaderDataType::Float3:   return 4 * 3;
-		case ShaderDataType::Float4:   return 4 * 4;
-		case ShaderDataType::Mat3:     return 4 * 3 * 3;
-		case ShaderDataType::Mat4:     return 4 * 4 * 4;
-		case ShaderDataType::Int:      return 4;
-		case ShaderDataType::Int2:     return 4 * 2;
-		case ShaderDataType::Int3:     return 4 * 3;
-		case ShaderDataType::Int4:     return 4 * 4;
-		case ShaderDataType::Bool:     return 1;
+			case ShaderDataType::Float:    return 4;
+			case ShaderDataType::Float2:   return 4 * 2;
+			case ShaderDataType::Float3:   return 4 * 3;
+			case ShaderDataType::Float4:   return 4 * 4;
+			case ShaderDataType::Mat3:     return 4 * 3 * 3;
+			case ShaderDataType::Mat4:     return 4 * 4 * 4;
+			case ShaderDataType::Int:      return 4;
+			case ShaderDataType::Int2:     return 4 * 2;
+			case ShaderDataType::Int3:     return 4 * 3;
+			case ShaderDataType::Int4:     return 4 * 4;
+			case ShaderDataType::Bool:     return 1;
 		}
 
 		HZ_CORE_ASSERT(false, "Unknown ShaderDataType!");
@@ -49,17 +49,17 @@ namespace Hazel {
 		{
 			switch (Type)
 			{
-			case ShaderDataType::Float:   return 1;
-			case ShaderDataType::Float2:  return 2;
-			case ShaderDataType::Float3:  return 3;
-			case ShaderDataType::Float4:  return 4;
-			case ShaderDataType::Mat3:    return 3 * 3;
-			case ShaderDataType::Mat4:    return 4 * 4;
-			case ShaderDataType::Int:     return 1;
-			case ShaderDataType::Int2:    return 2;
-			case ShaderDataType::Int3:    return 3;
-			case ShaderDataType::Int4:    return 4;
-			case ShaderDataType::Bool:    return 1;
+				case ShaderDataType::Float:   return 1;
+				case ShaderDataType::Float2:  return 2;
+				case ShaderDataType::Float3:  return 3;
+				case ShaderDataType::Float4:  return 4;
+				case ShaderDataType::Mat3:    return 3 * 3;
+				case ShaderDataType::Mat4:    return 4 * 4;
+				case ShaderDataType::Int:     return 1;
+				case ShaderDataType::Int2:    return 2;
+				case ShaderDataType::Int3:    return 3;
+				case ShaderDataType::Int4:    return 4;
+				case ShaderDataType::Bool:    return 1;
 			}
 
 			HZ_CORE_ASSERT(false, "Unknown ShaderDataType!");
@@ -107,26 +107,25 @@ namespace Hazel {
 		None = 0, Static = 1, Dynamic = 2
 	};
 
-	class VertexBuffer
+	class VertexBuffer : public RefCounted
 	{
 	public:
 		virtual ~VertexBuffer() {}
-																										
-		virtual void SetData(void* buffer, uint32_t size, uint32_t offset = 0) = 0;			 // 设置缓冲区数据
-		virtual void Bind() const = 0; 														 // 绑定缓冲区到渲染管线
+
+		virtual void SetData(void* buffer, uint32_t size, uint32_t offset = 0) = 0;
+		virtual void Bind() const = 0;
 
 		virtual const BufferLayout& GetLayout() const = 0;
 		virtual void SetLayout(const BufferLayout& layout) = 0;
 
-		virtual unsigned int GetSize() const = 0;											 // 获取缓冲区大小
-		virtual RendererID GetRendererID() const = 0;										 // 获取底层API的缓冲区ID
+		virtual unsigned int GetSize() const = 0;
+		virtual RendererID GetRendererID() const = 0;
 
 		static Ref<VertexBuffer> Create(void* data, uint32_t size, VertexBufferUsage usage = VertexBufferUsage::Static);
 		static Ref<VertexBuffer> Create(uint32_t size, VertexBufferUsage usage = VertexBufferUsage::Dynamic);
 	};
 
-	// 索引缓冲区
-	class IndexBuffer
+	class IndexBuffer : public RefCounted
 	{
 	public:
 		virtual ~IndexBuffer() {}
@@ -134,11 +133,12 @@ namespace Hazel {
 		virtual void SetData(void* buffer, uint32_t size, uint32_t offset = 0) = 0;
 		virtual void Bind() const = 0;
 
-		virtual uint32_t GetCount() const = 0;												 // 获取索引数量
+		virtual uint32_t GetCount() const = 0;
 
 		virtual unsigned int GetSize() const = 0;
 		virtual RendererID GetRendererID() const = 0;
 
+		static Ref<IndexBuffer> Create(uint32_t size);
 		static Ref<IndexBuffer> Create(void* data, uint32_t size = 0);
 	};
 

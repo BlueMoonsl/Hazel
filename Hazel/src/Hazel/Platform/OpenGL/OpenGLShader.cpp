@@ -1,4 +1,4 @@
-﻿#include "hzpch.h"
+#include "hzpch.h"
 #include "OpenGLShader.h"
 
 #include <string>
@@ -18,7 +18,6 @@ namespace Hazel {
 #define HZ_LOG_UNIFORM
 #endif
 
-	// 构造函数：根据文件路径初始化 OpenGLShader，并自动加载
 	OpenGLShader::OpenGLShader(const std::string& filepath)
 		: m_AssetPath(filepath)
 	{
@@ -26,18 +25,17 @@ namespace Hazel {
 		m_Name = found != std::string::npos ? filepath.substr(found + 1) : filepath;
 		found = m_Name.find_last_of(".");
 		m_Name = found != std::string::npos ? m_Name.substr(0, found) : m_Name;
-		
+
 		Reload();
 	}
 
 	Ref<OpenGLShader> OpenGLShader::CreateFromString(const std::string& source)
 	{
-		Ref<OpenGLShader> shader = std::make_shared<OpenGLShader>();
+		Ref<OpenGLShader> shader = Ref<OpenGLShader>::Create();
 		shader->Load(source);
 		return shader;
 	}
 
-	// 重新加载着色器（读取源码、编译、解析 Uniform 等）
 	void OpenGLShader::Reload()
 	{
 		std::string source = ReadShaderFromFile(m_AssetPath);
@@ -72,13 +70,11 @@ namespace Hazel {
 		});
 	}
 
-	// 添加着色器重新加载回调
 	void OpenGLShader::AddShaderReloadedCallback(const ShaderReloadedCallback& callback)
 	{
 		m_ShaderReloadedCallbacks.push_back(callback);
 	}
 
-	// 绑定着色器到渲染管线
 	void OpenGLShader::Bind()
 	{
 		Renderer::Submit([=]() {
@@ -86,7 +82,6 @@ namespace Hazel {
 		});
 	}
 
-	// 从文件读取着色器源码
 	std::string OpenGLShader::ReadShaderFromFile(const std::string& filepath) const
 	{
 		std::string result;
@@ -97,17 +92,15 @@ namespace Hazel {
 			result.resize(in.tellg());
 			in.seekg(0, std::ios::beg);
 			in.read(&result[0], result.size());
-			in.close();
 		}
 		else
 		{
 			HZ_CORE_ASSERT(false, "Could not load shader!");
 		}
-
+		in.close();
 		return result;
 	}
 
-	// 预处理源码，按 #type 分割不同着色器类型
 	std::unordered_map<GLenum, std::string> OpenGLShader::PreProcess(const std::string& source)
 	{
 		std::unordered_map<GLenum, std::string> shaderSources;
@@ -126,7 +119,7 @@ namespace Hazel {
 			size_t nextLinePos = source.find_first_not_of("\r\n", eol);
 			pos = source.find(typeToken, nextLinePos);
 			auto shaderType = ShaderTypeFromString(type);
-				shaderSources[shaderType] = source.substr(nextLinePos, pos - (nextLinePos == std::string::npos ? source.size() - 1 : nextLinePos));
+			shaderSources[shaderType] = source.substr(nextLinePos, pos - (nextLinePos == std::string::npos ? source.size() - 1 : nextLinePos));
 
 			// Compute shaders cannot contain other types
 			if (shaderType == GL_COMPUTE_SHADER)
@@ -139,9 +132,7 @@ namespace Hazel {
 		return shaderSources;
 	}
 
-	// ===================== 解析辅助函数 =====================
-
-	// 查找 token（如 "struct"、"uniform"）在字符串中的位置
+	// Parsing helper functions
 	const char* FindToken(const char* str, const std::string& token)
 	{
 		const char* t = str;
@@ -162,7 +153,6 @@ namespace Hazel {
 		return FindToken(string.c_str(), token);
 	}
 
-	// 按分隔符分割字符串
 	std::vector<std::string> SplitString(const std::string& string, const std::string& delimiters)
 	{
 		size_t start = 0;
@@ -191,19 +181,16 @@ namespace Hazel {
 		return SplitString(string, std::string(1, delimiter));
 	}
 
-	// 按空白符分词
 	std::vector<std::string> Tokenize(const std::string& string)
 	{
 		return SplitString(string, " \t\n");
 	}
 
-	// 按行分割
 	std::vector<std::string> GetLines(const std::string& string)
 	{
 		return SplitString(string, "\n");
 	}
 
-	// 获取大括号包围的代码块
 	std::string GetBlock(const char* str, const char** outPosition)
 	{
 		const char* end = strstr(str, "}");
@@ -216,7 +203,6 @@ namespace Hazel {
 		return std::string(str, length);
 	}
 
-	// 获取分号结尾的语句
 	std::string GetStatement(const char* str, const char** outPosition)
 	{
 		const char* end = strstr(str, ";");
@@ -229,15 +215,12 @@ namespace Hazel {
 		return std::string(str, length);
 	}
 
-	// 判断字符串是否以指定前缀开头
 	bool StartsWith(const std::string& string, const std::string& start)
 	{
 		return string.find(start) == 0;
 	}
 
-	// ===================== 着色器源码解析 =====================
 
-	// 解析着色器源码，提取 struct 和 uniform 声明
 	void OpenGLShader::Parse()
 	{
 		const char* token;
@@ -246,34 +229,31 @@ namespace Hazel {
 
 		m_Resources.clear();
 		m_Structs.clear();
-		m_VSMaterialUniformBuffer.reset();
-		m_PSMaterialUniformBuffer.reset();
+		m_VSMaterialUniformBuffer.Reset();
+		m_PSMaterialUniformBuffer.Reset();
 
 		auto& vertexSource = m_ShaderSource[GL_VERTEX_SHADER];
 		auto& fragmentSource = m_ShaderSource[GL_FRAGMENT_SHADER];
 
-		// 解析顶点着色器 struct
+		// Vertex Shader
 		vstr = vertexSource.c_str();
 		while (token = FindToken(vstr, "struct"))
 			ParseUniformStruct(GetBlock(token, &vstr), ShaderDomain::Vertex);
 
-		// 解析顶点着色器 uniform
 		vstr = vertexSource.c_str();
 		while (token = FindToken(vstr, "uniform"))
 			ParseUniform(GetStatement(token, &vstr), ShaderDomain::Vertex);
 
-		// 解析片元着色器 struct
+		// Fragment Shader
 		fstr = fragmentSource.c_str();
 		while (token = FindToken(fstr, "struct"))
 			ParseUniformStruct(GetBlock(token, &fstr), ShaderDomain::Pixel);
 
-		// 解析片元着色器 uniform
 		fstr = fragmentSource.c_str();
 		while (token = FindToken(fstr, "uniform"))
 			ParseUniform(GetStatement(token, &fstr), ShaderDomain::Pixel);
 	}
 
-	// 判断类型字符串是否为资源类型（如采样器/纹理）
 	static bool IsTypeStringResource(const std::string& type)
 	{
 		if (type == "sampler2D")		return true;
@@ -283,7 +263,6 @@ namespace Hazel {
 		return false;
 	}
 
-	// 查找结构体声明
 	ShaderStruct* OpenGLShader::FindStruct(const std::string& name)
 	{
 		for (ShaderStruct* s : m_Structs)
@@ -294,7 +273,6 @@ namespace Hazel {
 		return nullptr;
 	}
 
-	// 解析 uniform 声明
 	void OpenGLShader::ParseUniform(const std::string& statement, ShaderDomain domain)
 	{
 		std::vector<std::string> tokens = Tokenize(statement);
@@ -303,7 +281,7 @@ namespace Hazel {
 		index++; // "uniform"
 		std::string typeString = tokens[index++];
 		std::string name = tokens[index++];
-		// 去除变量名末尾的分号
+		// Strip ; from name if present
 		if (const char* s = strstr(name.c_str(), ";"))
 			name = std::string(name.c_str(), s - name.c_str());
 
@@ -321,19 +299,17 @@ namespace Hazel {
 
 		if (IsTypeStringResource(typeString))
 		{
-			// 资源类型 uniform
 			ShaderResourceDeclaration* declaration = new OpenGLShaderResourceDeclaration(OpenGLShaderResourceDeclaration::StringToType(typeString), name, count);
 			m_Resources.push_back(declaration);
 		}
 		else
 		{
-			// 普通类型 uniform
 			OpenGLShaderUniformDeclaration::Type t = OpenGLShaderUniformDeclaration::StringToType(typeString);
 			OpenGLShaderUniformDeclaration* declaration = nullptr;
 
 			if (t == OpenGLShaderUniformDeclaration::Type::NONE)
 			{
-				// 结构体类型 uniform
+				// Find struct
 				ShaderStruct* s = FindStruct(typeString);
 				HZ_CORE_ASSERT(s, "");
 				declaration = new OpenGLShaderUniformDeclaration(domain, s, name, count);
@@ -343,7 +319,6 @@ namespace Hazel {
 				declaration = new OpenGLShaderUniformDeclaration(domain, t, name, count);
 			}
 
-			// 以 r_ 开头的 uniform 归为渲染器 uniform，否则归为材质 uniform
 			if (StartsWith(name, "r_"))
 			{
 				if (domain == ShaderDomain::Vertex)
@@ -356,14 +331,14 @@ namespace Hazel {
 				if (domain == ShaderDomain::Vertex)
 				{
 					if (!m_VSMaterialUniformBuffer)
-						m_VSMaterialUniformBuffer.reset(new OpenGLShaderUniformBufferDeclaration("", domain));
+						m_VSMaterialUniformBuffer.Reset(new OpenGLShaderUniformBufferDeclaration("", domain));
 
 					m_VSMaterialUniformBuffer->PushUniform(declaration);
 				}
 				else if (domain == ShaderDomain::Pixel)
 				{
 					if (!m_PSMaterialUniformBuffer)
-						m_PSMaterialUniformBuffer.reset(new OpenGLShaderUniformBufferDeclaration("", domain));
+						m_PSMaterialUniformBuffer.Reset(new OpenGLShaderUniformBufferDeclaration("", domain));
 
 					m_PSMaterialUniformBuffer->PushUniform(declaration);
 				}
@@ -371,7 +346,6 @@ namespace Hazel {
 		}
 	}
 
-	// 解析 struct 声明
 	void OpenGLShader::ParseUniformStruct(const std::string& block, ShaderDomain domain)
 	{
 		std::vector<std::string> tokens = Tokenize(block);
@@ -389,7 +363,7 @@ namespace Hazel {
 			std::string type = tokens[index++];
 			std::string name = tokens[index++];
 
-			// 去除变量名末尾的分号
+			// Strip ; from name if present
 			if (const char* s = strstr(name.c_str(), ";"))
 				name = std::string(name.c_str(), s - name.c_str());
 
@@ -409,12 +383,10 @@ namespace Hazel {
 		m_Structs.push_back(uniformStruct);
 	}
 
-	// 解析并缓存所有 Uniform 的 location
 	void OpenGLShader::ResolveUniforms()
 	{
 		glUseProgram(m_RendererID);
 
-		// 解析顶点着色器渲染器 Uniform
 		for (size_t i = 0; i < m_VSRendererUniformBuffers.size(); i++)
 		{
 			OpenGLShaderUniformBufferDeclaration* decl = (OpenGLShaderUniformBufferDeclaration*)m_VSRendererUniformBuffers[i];
@@ -439,7 +411,6 @@ namespace Hazel {
 			}
 		}
 
-		// 解析片元着色器渲染器 Uniform
 		for (size_t i = 0; i < m_PSRendererUniformBuffers.size(); i++)
 		{
 			OpenGLShaderUniformBufferDeclaration* decl = (OpenGLShaderUniformBufferDeclaration*)m_PSRendererUniformBuffers[i];
@@ -464,7 +435,6 @@ namespace Hazel {
 			}
 		}
 
-		// 解析顶点材质 Uniform
 		{
 			const auto& decl = m_VSMaterialUniformBuffer;
 			if (decl)
@@ -491,7 +461,6 @@ namespace Hazel {
 			}
 		}
 
-		// 解析片元材质 Uniform
 		{
 			const auto& decl = m_PSMaterialUniformBuffer;
 			if (decl)
@@ -518,7 +487,6 @@ namespace Hazel {
 			}
 		}
 
-		// 解析所有资源 Uniform（如采样器/纹理），并分配绑定槽
 		uint32_t sampler = 0;
 		for (size_t i = 0; i < m_Resources.size(); i++)
 		{
@@ -546,13 +514,11 @@ namespace Hazel {
 		}
 	}
 
-	// 校验 Uniform（暂未实现）
 	void OpenGLShader::ValidateUniforms()
 	{
 
 	}
 
-	// 获取 Uniform 变量在 OpenGL 程序中的 location
 	int32_t OpenGLShader::GetUniformLocation(const std::string& name) const
 	{
 		int32_t result = glGetUniformLocation(m_RendererID, name.c_str());
@@ -562,7 +528,6 @@ namespace Hazel {
 		return result;
 	}
 
-	// 字符串转 OpenGL 着色器类型
 	GLenum OpenGLShader::ShaderTypeFromString(const std::string& type)
 	{
 		if (type == "vertex")
@@ -575,7 +540,6 @@ namespace Hazel {
 		return GL_NONE;
 	}
 
-	// 编译并上传着色器到 GPU
 	void OpenGLShader::CompileAndUploadShader()
 	{
 		std::vector<GLuint> shaderRendererIDs;
@@ -587,7 +551,7 @@ namespace Hazel {
 			std::string& source = kv.second;
 
 			GLuint shaderRendererID = glCreateShader(type);
-			const GLchar* sourceCstr = (const GLchar*)source.c_str();
+			const GLchar *sourceCstr = (const GLchar *)source.c_str();
 			glShaderSource(shaderRendererID, 1, &sourceCstr, 0);
 
 			glCompileShader(shaderRendererID);
@@ -599,13 +563,13 @@ namespace Hazel {
 				GLint maxLength = 0;
 				glGetShaderiv(shaderRendererID, GL_INFO_LOG_LENGTH, &maxLength);
 
-				// 获取编译错误日志
+				// The maxLength includes the NULL character
 				std::vector<GLchar> infoLog(maxLength);
 				glGetShaderInfoLog(shaderRendererID, maxLength, &maxLength, &infoLog[0]);
 
 				HZ_CORE_ERROR("Shader compilation failed:\n{0}", &infoLog[0]);
 
-				// 删除失败的 shader
+				// We don't need the shader anymore.
 				glDeleteShader(shaderRendererID);
 
 				HZ_CORE_ASSERT(false, "Failed");
@@ -615,36 +579,36 @@ namespace Hazel {
 			glAttachShader(program, shaderRendererID);
 		}
 
-		// 链接 shader program
+		// Link our program
 		glLinkProgram(program);
 
+		// Note the different functions here: glGetProgram* instead of glGetShader*.
 		GLint isLinked = 0;
-		glGetProgramiv(program, GL_LINK_STATUS, (int*)&isLinked);
+		glGetProgramiv(program, GL_LINK_STATUS, (int *)&isLinked);
 		if (isLinked == GL_FALSE)
 		{
 			GLint maxLength = 0;
 			glGetProgramiv(program, GL_INFO_LOG_LENGTH, &maxLength);
 
-			// 获取链接错误日志
+			// The maxLength includes the NULL character
 			std::vector<GLchar> infoLog(maxLength);
 			glGetProgramInfoLog(program, maxLength, &maxLength, &infoLog[0]);
 			HZ_CORE_ERROR("Shader compilation failed:\n{0}", &infoLog[0]);
 
-			// 删除失败的 program
+			// We don't need the program anymore.
 			glDeleteProgram(program);
-			// 删除所有 shader
+			// Don't leak shaders either.
 			for (auto id : shaderRendererIDs)
 				glDeleteShader(id);
 		}
 
-		// 分离所有 shader
+		// Always detach shaders after a successful link.
 		for (auto id : shaderRendererIDs)
 			glDetachShader(program, id);
 
 		m_RendererID = program;
 	}
 
-	// 设置顶点着色器材质 Uniform 缓冲区
 	void OpenGLShader::SetVSMaterialUniformBuffer(Buffer buffer)
 	{
 		Renderer::Submit([this, buffer]() {
@@ -653,7 +617,6 @@ namespace Hazel {
 		});
 	}
 
-	// 设置片元着色器材质 Uniform 缓冲区
 	void OpenGLShader::SetPSMaterialUniformBuffer(Buffer buffer)
 	{
 		Renderer::Submit([this, buffer]() {
@@ -662,8 +625,7 @@ namespace Hazel {
 		});
 	}
 
-	// 解析并设置 Uniform 缓冲区中的所有 Uniform
-	void OpenGLShader::ResolveAndSetUniforms(const Scope<OpenGLShaderUniformBufferDeclaration>& decl, Buffer buffer)
+	void OpenGLShader::ResolveAndSetUniforms(const Ref<OpenGLShaderUniformBufferDeclaration>& decl, Buffer buffer)
 	{
 		const ShaderUniformList& uniforms = decl->GetUniformDeclarations();
 		for (size_t i = 0; i < uniforms.size(); i++)
@@ -676,7 +638,6 @@ namespace Hazel {
 		}
 	}
 
-	// 解析并设置单个 Uniform
 	void OpenGLShader::ResolveAndSetUniform(OpenGLShaderUniformDeclaration* uniform, Buffer buffer)
 	{
 		if (uniform->GetLocation() == -1)
@@ -716,7 +677,6 @@ namespace Hazel {
 		}
 	}
 
-	// 解析并设置 Uniform 数组
 	void OpenGLShader::ResolveAndSetUniformArray(OpenGLShaderUniformDeclaration* uniform, Buffer buffer)
 	{
 		//HZ_CORE_ASSERT(uniform->GetLocation() != -1, "Uniform has invalid location!");
@@ -753,7 +713,6 @@ namespace Hazel {
 		}
 	}
 
-	// 解析并设置结构体字段
 	void OpenGLShader::ResolveAndSetUniformField(const OpenGLShaderUniformDeclaration& field, byte* data, int32_t offset)
 	{
 		switch (field.GetType())
@@ -784,7 +743,6 @@ namespace Hazel {
 		}
 	}
 
-	// 上传 UniformBufferBase 到 GPU
 	void OpenGLShader::UploadUniformBuffer(const UniformBufferBase& uniformBuffer)
 	{
 		for (unsigned int i = 0; i < uniformBuffer.GetUniformCount(); i++)
@@ -798,7 +756,7 @@ namespace Hazel {
 					float value = *(float*)(uniformBuffer.GetBuffer() + decl.Offset);
 					Renderer::Submit([=]() {
 						UploadUniformFloat(name, value);
-						});
+					});
 				}
 				case UniformType::Float3:
 				{
@@ -806,7 +764,7 @@ namespace Hazel {
 					glm::vec3& values = *(glm::vec3*)(uniformBuffer.GetBuffer() + decl.Offset);
 					Renderer::Submit([=]() {
 						UploadUniformFloat3(name, values);
-						});
+					});
 				}
 				case UniformType::Float4:
 				{
@@ -814,7 +772,7 @@ namespace Hazel {
 					glm::vec4& values = *(glm::vec4*)(uniformBuffer.GetBuffer() + decl.Offset);
 					Renderer::Submit([=]() {
 						UploadUniformFloat4(name, values);
-						});
+					});
 				}
 				case UniformType::Matrix4x4:
 				{
@@ -822,36 +780,40 @@ namespace Hazel {
 					glm::mat4& values = *(glm::mat4*)(uniformBuffer.GetBuffer() + decl.Offset);
 					Renderer::Submit([=]() {
 						UploadUniformMat4(name, values);
-						});
+					});
 				}
 			}
 		}
 	}
 
-	// 临时接口：设置 float 类型 Uniform
 	void OpenGLShader::SetFloat(const std::string& name, float value)
 	{
 		Renderer::Submit([=]() {
 			UploadUniformFloat(name, value);
-			});
+		});
 	}
 
 	void OpenGLShader::SetInt(const std::string& name, int value)
 	{
 		Renderer::Submit([=]() {
 			UploadUniformInt(name, value);
-			});
+		});
 	}
 
-	// 临时接口：设置 mat4 类型 Uniform
+	void OpenGLShader::SetFloat3(const std::string& name, const glm::vec3& value)
+	{
+		Renderer::Submit([=]() {
+			UploadUniformFloat3(name, value);
+		});
+	}
+
 	void OpenGLShader::SetMat4(const std::string& name, const glm::mat4& value)
 	{
 		Renderer::Submit([=]() {
 			UploadUniformMat4(name, value);
-			});
+		});
 	}
 
-	// 渲染线程直接设置 mat4 类型 Uniform
 	void OpenGLShader::SetMat4FromRenderThread(const std::string& name, const glm::mat4& value, bool bind)
 	{
 		if (bind)
@@ -870,64 +832,54 @@ namespace Hazel {
 	{
 		Renderer::Submit([=]() {
 			UploadUniformIntArray(name, values, size);
-			});
+		});
 	}
 
-	// 上传 int 类型 Uniform（通过 location）
 	void OpenGLShader::UploadUniformInt(uint32_t location, int32_t value)
 	{
 		glUniform1i(location, value);
 	}
 
-	// 上传 int 数组 Uniform（通过 location）
-	void OpenGLShader::UploadUniformIntArray(uint32_t location, int32_t* values, uint32_t count)
+	void OpenGLShader::UploadUniformIntArray(uint32_t location, int32_t* values, int32_t count)
 	{
 		glUniform1iv(location, count, values);
 	}
 
-	// 上传 float 类型 Uniform（通过 location）
 	void OpenGLShader::UploadUniformFloat(uint32_t location, float value)
 	{
 		glUniform1f(location, value);
 	}
 
-	// 上传 vec2 类型 Uniform（通过 location）
 	void OpenGLShader::UploadUniformFloat2(uint32_t location, const glm::vec2& value)
 	{
 		glUniform2f(location, value.x, value.y);
 	}
 
-	// 上传 vec3 类型 Uniform（通过 location）
 	void OpenGLShader::UploadUniformFloat3(uint32_t location, const glm::vec3& value)
 	{
 		glUniform3f(location, value.x, value.y, value.z);
 	}
 
-	// 上传 vec4 类型 Uniform（通过 location）
 	void OpenGLShader::UploadUniformFloat4(uint32_t location, const glm::vec4& value)
 	{
 		glUniform4f(location, value.x, value.y, value.z, value.w);
 	}
 
-	// 上传 mat3 类型 Uniform（通过 location）
 	void OpenGLShader::UploadUniformMat3(uint32_t location, const glm::mat3& value)
 	{
 		glUniformMatrix3fv(location, 1, GL_FALSE, glm::value_ptr(value));
 	}
 
-	// 上传 mat4 类型 Uniform（通过 location）
 	void OpenGLShader::UploadUniformMat4(uint32_t location, const glm::mat4& value)
 	{
 		glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(value));
 	}
 
-	// 上传 mat4 数组 Uniform（通过 location）
 	void OpenGLShader::UploadUniformMat4Array(uint32_t location, const glm::mat4& values, uint32_t count)
 	{
 		glUniformMatrix4fv(location, count, GL_FALSE, glm::value_ptr(values));
 	}
 
-	// 上传结构体类型 Uniform
 	void OpenGLShader::UploadUniformStruct(OpenGLShaderUniformDeclaration* uniform, byte* buffer, uint32_t offset)
 	{
 		const ShaderStruct& s = uniform->GetShaderUniformStruct();
@@ -940,21 +892,18 @@ namespace Hazel {
 		}
 	}
 
-	// 上传 int 类型 Uniform（通过变量名）
 	void OpenGLShader::UploadUniformInt(const std::string& name, int32_t value)
 	{
 		int32_t location = GetUniformLocation(name);
 		glUniform1i(location, value);
 	}
 
-	// 上传 int 数组 Uniform（通过变量名）
-	void OpenGLShader::UploadUniformIntArray(const std::string& name, int32_t* values, int32_t count)
+	void OpenGLShader::UploadUniformIntArray(const std::string& name, int32_t* values, uint32_t count)
 	{
 		int32_t location = GetUniformLocation(name);
 		glUniform1iv(location, count, values);
 	}
 
-	// 上传 float 类型 Uniform（通过变量名）
 	void OpenGLShader::UploadUniformFloat(const std::string& name, float value)
 	{
 		glUseProgram(m_RendererID);
@@ -965,7 +914,6 @@ namespace Hazel {
 			HZ_LOG_UNIFORM("Uniform '{0}' not found!", name);
 	}
 
-	// 上传 vec3 类型 Uniform（通过变量名）
 	void OpenGLShader::UploadUniformFloat3(const std::string& name, const glm::vec3& values)
 	{
 		glUseProgram(m_RendererID);
@@ -976,7 +924,6 @@ namespace Hazel {
 			HZ_LOG_UNIFORM("Uniform '{0}' not found!", name);
 	}
 
-	// 上传 vec4 类型 Uniform（通过变量名）
 	void OpenGLShader::UploadUniformFloat4(const std::string& name, const glm::vec4& values)
 	{
 		glUseProgram(m_RendererID);
@@ -987,7 +934,6 @@ namespace Hazel {
 			HZ_LOG_UNIFORM("Uniform '{0}' not found!", name);
 	}
 
-	// 上传 mat4 类型 Uniform（通过变量名）
 	void OpenGLShader::UploadUniformMat4(const std::string& name, const glm::mat4& values)
 	{
 		glUseProgram(m_RendererID);

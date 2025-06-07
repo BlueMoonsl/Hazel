@@ -1,4 +1,4 @@
-﻿#include "hzpch.h"
+#include "hzpch.h"
 #include "Material.h"
 
 namespace Hazel {
@@ -9,10 +9,9 @@ namespace Hazel {
 
 	Ref<Material> Material::Create(const Ref<Shader>& shader)
 	{
-		return std::make_shared<Material>(shader);
+		return Ref<Material>::Create(shader);
 	}
 
-	// Material 构造函数，初始化着色器并分配 Uniform 存储空间
 	Material::Material(const Ref<Shader>& shader)
 		: m_Shader(shader)
 	{
@@ -27,7 +26,6 @@ namespace Hazel {
 	{
 	}
 
-	// 分配顶点/像素着色器 Uniform 缓冲区并初始化为0
 	void Material::AllocateStorage()
 	{
 		if (m_Shader->HasVSMaterialUniformBuffer())
@@ -45,17 +43,15 @@ namespace Hazel {
 		}
 	}
 
-	// 着色器重新加载时，重新分配 Uniform 存储并通知所有实例
 	void Material::OnShaderReloaded()
 	{
 		return;
 		AllocateStorage();
-
+		
 		for (auto mi : m_MaterialInstances)
 			mi->OnShaderReloaded();
 	}
 
-	// 查找 Uniform 声明（先查 VS，再查 PS）
 	ShaderUniformDeclaration* Material::FindUniformDeclaration(const std::string& name)
 	{
 		if (m_VSUniformStorageBuffer)
@@ -80,7 +76,6 @@ namespace Hazel {
 		return nullptr;
 	}
 
-	// 查找资源声明（如纹理）
 	ShaderResourceDeclaration* Material::FindResourceDeclaration(const std::string& name)
 	{
 		auto& resources = m_Shader->GetResources();
@@ -92,21 +87,19 @@ namespace Hazel {
 		return nullptr;
 	}
 
-	// 根据 Uniform 声明的 Domain 获取对应的 Uniform 缓冲区
 	Buffer& Material::GetUniformBufferTarget(ShaderUniformDeclaration* uniformDeclaration)
 	{
 		switch (uniformDeclaration->GetDomain())
 		{
-		case ShaderDomain::Vertex:    return m_VSUniformStorageBuffer;
-		case ShaderDomain::Pixel:     return m_PSUniformStorageBuffer;
+			case ShaderDomain::Vertex:    return m_VSUniformStorageBuffer;
+			case ShaderDomain::Pixel:     return m_PSUniformStorageBuffer;
 		}
 
 		HZ_CORE_ASSERT(false, "Invalid uniform declaration domain! Material does not support this shader type.");
 		return m_VSUniformStorageBuffer;
 	}
 
-	// 绑定材质：绑定着色器、Uniform 缓冲区和纹理
-	void Material::Bind() const
+	void Material::Bind()
 	{
 		m_Shader->Bind();
 
@@ -119,8 +112,7 @@ namespace Hazel {
 		BindTextures();
 	}
 
-	// 绑定所有纹理到对应插槽
-	void Material::BindTextures() const
+	void Material::BindTextures()
 	{
 		for (size_t i = 0; i < m_Textures.size(); i++)
 		{
@@ -136,10 +128,9 @@ namespace Hazel {
 
 	Ref<MaterialInstance> MaterialInstance::Create(const Ref<Material>& material)
 	{
-		return std::make_shared<MaterialInstance>(material);
+		return Ref<MaterialInstance>::Create(material);
 	}
 
-	// MaterialInstance 构造函数，注册到父材质并分配 Uniform 存储
 	MaterialInstance::MaterialInstance(const Ref<Material>& material)
 		: m_Material(material)
 	{
@@ -147,20 +138,17 @@ namespace Hazel {
 		AllocateStorage();
 	}
 
-	// 析构时从父材质注销
 	MaterialInstance::~MaterialInstance()
 	{
 		m_Material->m_MaterialInstances.erase(this);
 	}
 
-	// 着色器重新加载时，重新分配 Uniform 存储并清空覆盖值
 	void MaterialInstance::OnShaderReloaded()
 	{
 		AllocateStorage();
 		m_OverriddenValues.clear();
 	}
 
-	// 分配 Uniform 存储空间，并从父材质拷贝初始值
 	void MaterialInstance::AllocateStorage()
 	{
 		if (m_Material->m_Shader->HasVSMaterialUniformBuffer())
@@ -190,7 +178,6 @@ namespace Hazel {
 		}
 	}
 
-	// 父材质值更新时，若未被实例覆盖则同步更新
 	void MaterialInstance::OnMaterialValueUpdated(ShaderUniformDeclaration* decl)
 	{
 		if (m_OverriddenValues.find(decl->GetName()) == m_OverriddenValues.end())
@@ -201,21 +188,19 @@ namespace Hazel {
 		}
 	}
 
-	// 根据 Uniform 声明的 Domain 获取对应的 Uniform 缓冲区
 	Buffer& MaterialInstance::GetUniformBufferTarget(ShaderUniformDeclaration* uniformDeclaration)
 	{
 		switch (uniformDeclaration->GetDomain())
 		{
-		case ShaderDomain::Vertex:    return m_VSUniformStorageBuffer;
-		case ShaderDomain::Pixel:     return m_PSUniformStorageBuffer;
+			case ShaderDomain::Vertex:    return m_VSUniformStorageBuffer;
+			case ShaderDomain::Pixel:     return m_PSUniformStorageBuffer;
 		}
 
 		HZ_CORE_ASSERT(false, "Invalid uniform declaration domain! Material does not support this shader type.");
 		return m_VSUniformStorageBuffer;
 	}
 
-	// 绑定材质实例：设置 Uniform 缓冲区并绑定纹理
-	void MaterialInstance::Bind() const
+	void MaterialInstance::Bind()
 	{
 		m_Material->m_Shader->Bind();
 
@@ -233,4 +218,5 @@ namespace Hazel {
 				texture->Bind(i);
 		}
 	}
+
 }

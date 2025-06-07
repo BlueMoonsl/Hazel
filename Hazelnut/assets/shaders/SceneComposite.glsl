@@ -1,4 +1,4 @@
-﻿#type vertex
+#type vertex
 #version 430
 
 layout(location = 0) in vec3 a_Position;
@@ -29,8 +29,9 @@ vec4 MultiSampleTexture(sampler2DMS tex, ivec2 texCoord, int samples)
     vec4 result = vec4(0.0);
     for (int i = 0; i < samples; i++)
         result += texelFetch(tex, texCoord, i);
-	result /= float(samples);
-	return result;
+
+    result /= float(samples);
+    return result;
 }
 
 void main()

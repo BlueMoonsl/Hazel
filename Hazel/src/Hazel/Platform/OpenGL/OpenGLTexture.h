@@ -1,11 +1,10 @@
-﻿#pragma once
+#pragma once
 
 #include "Hazel/Renderer/RendererAPI.h"
 #include "Hazel/Renderer/Texture.h"
 
 namespace Hazel {
 
-	// OpenGL2D纹理
 	class OpenGLTexture2D : public Texture2D
 	{
 	public:
@@ -53,7 +52,6 @@ namespace Hazel {
 		std::string m_FilePath;
 	};
 
-	// OpenGL立方体纹理
 	class OpenGLTextureCube : public TextureCube
 	{
 	public:

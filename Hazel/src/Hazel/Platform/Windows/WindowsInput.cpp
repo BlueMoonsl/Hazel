@@ -1,4 +1,4 @@
-﻿#include "hzpch.h"
+#include "hzpch.h"
 #include "Hazel/Core/Input.h"
 #include "WindowsWindow.h"
 
@@ -8,31 +8,27 @@
 
 namespace Hazel {
 
-	bool Input::IsKeyPressed(int keycode)
+	bool Input::IsKeyPressed(KeyCode keycode)
 	{
 		auto& window = static_cast<WindowsWindow&>(Application::Get().GetWindow());
-		// 获取键盘按键状态
-		auto state = glfwGetKey(static_cast<GLFWwindow*>(window.GetNativeWindow()), keycode);
+		auto state = glfwGetKey(static_cast<GLFWwindow*>(window.GetNativeWindow()), static_cast<int32_t>(keycode));
 		return state == GLFW_PRESS || state == GLFW_REPEAT;
 	}
 
-	// 检查指定鼠标按钮是否被按下
 	bool Input::IsMouseButtonPressed(int button)
 	{
 		auto& window = static_cast<WindowsWindow&>(Application::Get().GetWindow());
-		// 获取鼠标按钮状态
+
 		auto state = glfwGetMouseButton(static_cast<GLFWwindow*>(window.GetNativeWindow()), button);
 		return state == GLFW_PRESS;
 	}
 
-	// 获取鼠标当前的 X 坐标
 	float Input::GetMouseX()
 	{
-		auto [x, y] = GetMousePosition(); 
+		auto [x, y] = GetMousePosition();
 		return (float)x;
 	}
 
-	// 获取鼠标当前的 Y 坐标
 	float Input::GetMouseY()
 	{
 		auto [x, y] = GetMousePosition();
@@ -46,6 +42,7 @@ namespace Hazel {
 		double x, y;
 		glfwGetCursorPos(static_cast<GLFWwindow*>(window.GetNativeWindow()), &x, &y);
 		return { (float)x, (float)y };
+
 	}
 
 }

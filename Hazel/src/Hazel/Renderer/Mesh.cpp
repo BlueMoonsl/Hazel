@@ -1,4 +1,4 @@
-﻿#include "hzpch.h"
+#include "hzpch.h" 
 #include "Mesh.h"
 
 #include <glad/glad.h>
@@ -24,11 +24,11 @@
 
 namespace Hazel {
 
-#define MESH_DEBUG_LOG 1
+#define MESH_DEBUG_LOG 0
 #if MESH_DEBUG_LOG
-	#define HZ_MESH_LOG(...) HZ_CORE_TRACE(__VA_ARGS__)
+#define HZ_MESH_LOG(...) HZ_CORE_TRACE(__VA_ARGS__)
 #else
-	#define HZ_MESH_LOG(...)
+#define HZ_MESH_LOG(...)
 #endif
 
 	glm::mat4 Mat4FromAssimpMat4(const aiMatrix4x4& matrix)
@@ -42,20 +42,17 @@ namespace Hazel {
 		return result;
 	}
 
-	// Assimp 导入标志，控制模型导入时的处理方式
 	static const uint32_t s_MeshImportFlags =
-		aiProcess_CalcTangentSpace |        // 计算切线空间
-		aiProcess_Triangulate |             // 三角化所有面
-		aiProcess_SortByPType |             // 按图元类型分割网格
-		aiProcess_GenNormals |              // 生成法线
-		aiProcess_GenUVCoords |             // 生成/转换 UV 坐标
-		aiProcess_OptimizeMeshes |          // 优化网格以减少绘制调用
-		aiProcess_ValidateDataStructure;    // 验证数据结构
+		aiProcess_CalcTangentSpace |        // Create binormals/tangents just in case
+		aiProcess_Triangulate |             // Make sure we're triangles
+		aiProcess_SortByPType |             // Split meshes by primitive type
+		aiProcess_GenNormals |              // Make sure we have legit normals
+		aiProcess_GenUVCoords |             // Convert UVs if required 
+		aiProcess_OptimizeMeshes |          // Batch draws where possible
+		aiProcess_ValidateDataStructure;    // Validation
 
-	// Assimp 日志流，用于捕获并输出 Assimp 的错误和警告信息
 	struct LogStream : public Assimp::LogStream
 	{
-		// 初始化日志流，只在首次调用时创建
 		static void Initialize()
 		{
 			if (Assimp::DefaultLogger::isNullLogger())
@@ -65,21 +62,19 @@ namespace Hazel {
 			}
 		}
 
-		// 重写 write 方法，将日志输出到 Hazel 的日志系统
 		virtual void write(const char* message) override
 		{
 			HZ_CORE_ERROR("Assimp error: {0}", message);
 		}
 	};
 
-	// 从文件构造Mesh
 	Mesh::Mesh(const std::string& filename)
 		: m_FilePath(filename)
 	{
 		LogStream::Initialize();
 
 		HZ_CORE_INFO("Loading mesh: {0}", filename.c_str());
-
+		
 		m_Importer = std::make_unique<Assimp::Importer>();
 
 		const aiScene* scene = m_Importer->ReadFile(filename, s_MeshImportFlags);
@@ -90,8 +85,8 @@ namespace Hazel {
 
 		m_IsAnimated = scene->mAnimations != nullptr;
 		m_MeshShader = m_IsAnimated ? Renderer::GetShaderLibrary()->Get("HazelPBR_Anim") : Renderer::GetShaderLibrary()->Get("HazelPBR_Static");
-		m_BaseMaterial = CreateRef<Material>(m_MeshShader);
-		// m_MaterialInstance = std::make_shared<MaterialInstance>(m_BaseMaterial);
+		m_BaseMaterial = Ref<Material>::Create(m_MeshShader);
+		// m_MaterialInstance = Ref<MaterialInstance>::Create(m_BaseMaterial);
 		m_InverseTransform = glm::inverse(Mat4FromAssimpMat4(scene->mRootNode->mTransformation));
 
 		uint32_t vertexCount = 0;
@@ -115,14 +110,14 @@ namespace Hazel {
 			HZ_CORE_ASSERT(mesh->HasPositions(), "Meshes require positions.");
 			HZ_CORE_ASSERT(mesh->HasNormals(), "Meshes require normals.");
 
-			// 解析顶点数据
+			// Vertices
 			if (m_IsAnimated)
 			{
 				for (size_t i = 0; i < mesh->mNumVertices; i++)
 				{
 					AnimatedVertex vertex;
 					vertex.Position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
-						vertex.Normal = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
+					vertex.Normal = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
 
 					if (mesh->HasTangentsAndBitangents())
 					{
@@ -166,26 +161,28 @@ namespace Hazel {
 				}
 			}
 
-			// 解析索引数据
+			// Indices
 			for (size_t i = 0; i < mesh->mNumFaces; i++)
 			{
 				HZ_CORE_ASSERT(mesh->mFaces[i].mNumIndices == 3, "Must have 3 indices.");
 				Index index = { mesh->mFaces[i].mIndices[0], mesh->mFaces[i].mIndices[1], mesh->mFaces[i].mIndices[2] };
-					m_Indices.push_back(index);
+				m_Indices.push_back(index);
 
 				if (!m_IsAnimated)
 					m_TriangleCache[m].emplace_back(m_StaticVertices[index.V1 + submesh.BaseVertex], m_StaticVertices[index.V2 + submesh.BaseVertex], m_StaticVertices[index.V3 + submesh.BaseVertex]);
 			}
+
+			
 		}
 
 		TraverseNodes(scene->mRootNode);
 
-		// 解析骨骼数据
+		// Bones
 		if (m_IsAnimated)
 		{
 			for (size_t m = 0; m < scene->mNumMeshes; m++)
 			{
-				aiMesh* mesh = scene->mMeshes[m]; 
+				aiMesh* mesh = scene->mMeshes[m];
 				Submesh& submesh = m_Submeshes[m];
 
 				for (size_t i = 0; i < mesh->mNumBones; i++)
@@ -232,7 +229,7 @@ namespace Hazel {
 				auto aiMaterial = scene->mMaterials[i];
 				auto aiMaterialName = aiMaterial->GetName();
 
-				auto mi = CreateRef<MaterialInstance>(m_BaseMaterial);
+				auto mi = Ref<MaterialInstance>::Create(m_BaseMaterial);
 				m_Materials[i] = mi;
 
 				HZ_MESH_LOG("  {0} (Index = {1})", aiMaterialName.data, i);
@@ -242,9 +239,12 @@ namespace Hazel {
 
 				aiColor3D aiColor;
 				aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, aiColor);
+
 				float shininess, metalness;
 				aiMaterial->Get(AI_MATKEY_SHININESS, shininess);
 				aiMaterial->Get(AI_MATKEY_REFLECTIVITY, metalness);
+
+				metalness = 0.0f;
 
 				// float roughness = 1.0f - shininess * 0.01f;
 				// roughness *= roughness;
@@ -259,7 +259,6 @@ namespace Hazel {
 					auto parentPath = path.parent_path();
 					parentPath /= std::string(aiTexPath.data);
 					std::string texturePath = parentPath.string();
-
 					HZ_MESH_LOG("    Albedo map path = {0}", texturePath);
 					auto texture = Texture2D::Create(texturePath, true);
 					if (texture->Loaded())
@@ -277,8 +276,7 @@ namespace Hazel {
 				}
 				else
 				{
-					mi->Set("u_AlbedoColor", glm::vec3{ aiColor.r, aiColor.g, aiColor.b });
-
+					mi->Set("u_AlbedoColor", glm::vec3 { aiColor.r, aiColor.g, aiColor.b });
 					HZ_MESH_LOG("    No albedo map");
 				}
 
@@ -291,7 +289,6 @@ namespace Hazel {
 					auto parentPath = path.parent_path();
 					parentPath /= std::string(aiTexPath.data);
 					std::string texturePath = parentPath.string();
-
 					HZ_MESH_LOG("    Normal map path = {0}", texturePath);
 					auto texture = Texture2D::Create(texturePath);
 					if (texture->Loaded())
@@ -319,7 +316,6 @@ namespace Hazel {
 					auto parentPath = path.parent_path();
 					parentPath /= std::string(aiTexPath.data);
 					std::string texturePath = parentPath.string();
-
 					HZ_MESH_LOG("    Roughness map path = {0}", texturePath);
 					auto texture = Texture2D::Create(texturePath);
 					if (texture->Loaded())
@@ -440,7 +436,6 @@ namespace Hazel {
 							parentPath /= str;
 							std::string texturePath = parentPath.string();
 							HZ_MESH_LOG("    Metalness map path = {0}", texturePath);
-
 							auto texture = Texture2D::Create(texturePath);
 							if (texture->Loaded())
 							{
@@ -469,7 +464,6 @@ namespace Hazel {
 			HZ_MESH_LOG("------------------------");
 		}
 
-		// 创建并上传顶点缓冲区
 		m_VertexArray = VertexArray::Create();
 		if (m_IsAnimated)
 		{
@@ -482,7 +476,7 @@ namespace Hazel {
 				{ ShaderDataType::Float2, "a_TexCoord" },
 				{ ShaderDataType::Int4, "a_BoneIDs" },
 				{ ShaderDataType::Float4, "a_BoneWeights" },
-				});
+			});
 			m_VertexArray->AddVertexBuffer(vb);
 		}
 		else
@@ -494,7 +488,7 @@ namespace Hazel {
 				{ ShaderDataType::Float3, "a_Tangent" },
 				{ ShaderDataType::Float3, "a_Binormal" },
 				{ ShaderDataType::Float2, "a_TexCoord" },
-				});
+			});
 			m_VertexArray->AddVertexBuffer(vb);
 		}
 
@@ -516,7 +510,7 @@ namespace Hazel {
 
 				float ticksPerSecond = (float)(m_Scene->mAnimations[0]->mTicksPerSecond != 0 ? m_Scene->mAnimations[0]->mTicksPerSecond : 25.0f) * m_TimeMultiplier;
 				m_AnimationTime += ts * ticksPerSecond;
-					m_AnimationTime = fmod(m_AnimationTime, (float)m_Scene->mAnimations[0]->mDuration);
+				m_AnimationTime = fmod(m_AnimationTime, (float)m_Scene->mAnimations[0]->mDuration);
 			}
 
 			// TODO: We only need to recalc bones if rendering has been requested at the current animation frame
@@ -549,7 +543,6 @@ namespace Hazel {
 			TraverseNodes(node->mChildren[i], transform, level + 1);
 	}
 
-	// 查找动画时间对应的位置关键帧索引
 	uint32_t Mesh::FindPosition(float AnimationTime, const aiNodeAnim* pNodeAnim)
 	{
 		for (uint32_t i = 0; i < pNodeAnim->mNumPositionKeys - 1; i++)
@@ -561,7 +554,7 @@ namespace Hazel {
 		return 0;
 	}
 
-	// 查找动画时间对应的旋转关键帧索引
+
 	uint32_t Mesh::FindRotation(float AnimationTime, const aiNodeAnim* pNodeAnim)
 	{
 		HZ_CORE_ASSERT(pNodeAnim->mNumRotationKeys > 0);
@@ -575,7 +568,7 @@ namespace Hazel {
 		return 0;
 	}
 
-	// 查找动画时间对应的缩放关键帧索引
+
 	uint32_t Mesh::FindScaling(float AnimationTime, const aiNodeAnim* pNodeAnim)
 	{
 		HZ_CORE_ASSERT(pNodeAnim->mNumScalingKeys > 0);
@@ -589,12 +582,12 @@ namespace Hazel {
 		return 0;
 	}
 
-	// 插值计算平移
+
 	glm::vec3 Mesh::InterpolateTranslation(float animationTime, const aiNodeAnim* nodeAnim)
 	{
 		if (nodeAnim->mNumPositionKeys == 1)
 		{
-			// 只有一个关键帧，无需插值
+			// No interpolation necessary for single value
 			auto v = nodeAnim->mPositionKeys[0].mValue;
 			return { v.x, v.y, v.z };
 		}
@@ -614,12 +607,12 @@ namespace Hazel {
 		return { aiVec.x, aiVec.y, aiVec.z };
 	}
 
-	// 插值计算旋转（四元数球面插值）
+
 	glm::quat Mesh::InterpolateRotation(float animationTime, const aiNodeAnim* nodeAnim)
 	{
 		if (nodeAnim->mNumRotationKeys == 1)
 		{
-			// 只有一个关键帧，无需插值
+			// No interpolation necessary for single value
 			auto v = nodeAnim->mRotationKeys[0].mValue;
 			return glm::quat(v.w, v.x, v.y, v.z);
 		}
@@ -640,12 +633,12 @@ namespace Hazel {
 		return glm::quat(q.w, q.x, q.y, q.z);
 	}
 
-	// 插值计算缩放
+
 	glm::vec3 Mesh::InterpolateScale(float animationTime, const aiNodeAnim* nodeAnim)
 	{
 		if (nodeAnim->mNumScalingKeys == 1)
 		{
-			// 只有一个关键帧，无需插值
+			// No interpolation necessary for single value
 			auto v = nodeAnim->mScalingKeys[0].mValue;
 			return { v.x, v.y, v.z };
 		}
@@ -665,7 +658,6 @@ namespace Hazel {
 		return { aiVec.x, aiVec.y, aiVec.z };
 	}
 
-	// 递归读取节点层级，计算骨骼变换
 	void Mesh::ReadNodeHierarchy(float AnimationTime, const aiNode* pNode, const glm::mat4& parentTransform)
 	{
 		std::string name(pNode->mName.data);
@@ -689,19 +681,16 @@ namespace Hazel {
 
 		glm::mat4 transform = parentTransform * nodeTransform;
 
-		// 如果当前节点是骨骼，更新最终变换
 		if (m_BoneMapping.find(name) != m_BoneMapping.end())
 		{
 			uint32_t BoneIndex = m_BoneMapping[name];
 			m_BoneInfo[BoneIndex].FinalTransformation = m_InverseTransform * transform * m_BoneInfo[BoneIndex].BoneOffset;
 		}
 
-		// 递归处理子节点
 		for (uint32_t i = 0; i < pNode->mNumChildren; i++)
 			ReadNodeHierarchy(AnimationTime, pNode->mChildren[i], transform);
 	}
 
-	// 查找指定节点的动画通道
 	const aiNodeAnim* Mesh::FindNodeAnim(const aiAnimation* animation, const std::string& nodeName)
 	{
 		for (uint32_t i = 0; i < animation->mNumChannels; i++)
@@ -711,9 +700,8 @@ namespace Hazel {
 				return nodeAnim;
 		}
 		return nullptr;
-	}
+	} 
 
-	// 计算所有骨骼的最终变换矩阵
 	void Mesh::BoneTransform(float time)
 	{
 		ReadNodeHierarchy(time, m_Scene->mRootNode, glm::mat4(1.0f));
@@ -722,7 +710,6 @@ namespace Hazel {
 			m_BoneTransforms[i] = m_BoneInfo[i].FinalTransformation;
 	}
 
-	// 输出顶点缓冲区内容到日志
 	void Mesh::DumpVertexBuffer()
 	{
 		// TODO: Convert to ImGui
@@ -733,17 +720,14 @@ namespace Hazel {
 		{
 			for (size_t i = 0; i < m_AnimatedVertices.size(); i++)
 			{
-				for (size_t i = 0; i < m_StaticVertices.size(); i++)
-				{
-					auto& vertex = m_StaticVertices[i];
-					HZ_MESH_LOG("Vertex: {0}", i);
-					HZ_MESH_LOG("Position: {0}, {1}, {2}", vertex.Position.x, vertex.Position.y, vertex.Position.z);
-					HZ_MESH_LOG("Normal: {0}, {1}, {2}", vertex.Normal.x, vertex.Normal.y, vertex.Normal.z);
-					HZ_MESH_LOG("Binormal: {0}, {1}, {2}", vertex.Binormal.x, vertex.Binormal.y, vertex.Binormal.z);
-					HZ_MESH_LOG("Tangent: {0}, {1}, {2}", vertex.Tangent.x, vertex.Tangent.y, vertex.Tangent.z);
-					HZ_MESH_LOG("TexCoord: {0}, {1}", vertex.Texcoord.x, vertex.Texcoord.y);
-					HZ_MESH_LOG("--");
-				}
+				auto& vertex = m_AnimatedVertices[i];
+				HZ_MESH_LOG("Vertex: {0}", i);
+				HZ_MESH_LOG("Position: {0}, {1}, {2}", vertex.Position.x, vertex.Position.y, vertex.Position.z);
+				HZ_MESH_LOG("Normal: {0}, {1}, {2}", vertex.Normal.x, vertex.Normal.y, vertex.Normal.z);
+				HZ_MESH_LOG("Binormal: {0}, {1}, {2}", vertex.Binormal.x, vertex.Binormal.y, vertex.Binormal.z);
+				HZ_MESH_LOG("Tangent: {0}, {1}, {2}", vertex.Tangent.x, vertex.Tangent.y, vertex.Tangent.z);
+				HZ_MESH_LOG("TexCoord: {0}, {1}", vertex.Texcoord.x, vertex.Texcoord.y);
+				HZ_MESH_LOG("--");
 			}
 		}
 		else
@@ -762,4 +746,5 @@ namespace Hazel {
 		}
 		HZ_MESH_LOG("------------------------------------------------------");
 	}
+
 }

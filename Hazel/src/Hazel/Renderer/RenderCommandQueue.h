@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "hzpch.h"
 
@@ -12,14 +12,13 @@ namespace Hazel {
 		RenderCommandQueue();
 		~RenderCommandQueue();
 
-		// 分配一块内存用于存储一个渲染命令
 		void* Allocate(RenderCommandFn func, uint32_t size);
-		// 执行队列中的所有渲染命令
+
 		void Execute();
 	private:
-		uint8_t* m_CommandBuffer;		// 命令缓冲区起始指针
-		uint8_t* m_CommandBufferPtr;	// 当前写入位置指针
-		uint32_t  m_CommandCount = 0;	// 当前命令数量
+		uint8_t* m_CommandBuffer;
+		uint8_t* m_CommandBufferPtr;
+		uint32_t m_CommandCount = 0;
 	};
 
 

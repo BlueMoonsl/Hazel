@@ -1,4 +1,4 @@
-﻿#include "hzpch.h"
+#include "hzpch.h"
 #include "Renderer.h"
 
 #include "Shader.h"
@@ -12,21 +12,21 @@
 namespace Hazel {
 
 	RendererAPIType RendererAPI::s_CurrentRendererAPI = RendererAPIType::OpenGL;
-	
+
 	struct RendererData
 	{
 		Ref<RenderPass> m_ActiveRenderPass;
 		RenderCommandQueue m_CommandQueue;
-		Scope<ShaderLibrary> m_ShaderLibrary;
+		Ref<ShaderLibrary> m_ShaderLibrary;
 		Ref<VertexArray> m_FullscreenQuadVertexArray;
 	};
 
 	static RendererData s_Data;
-
+	
 	void Renderer::Init()
 	{
-		s_Data.m_ShaderLibrary = std::make_unique<ShaderLibrary>();
-		Renderer::Submit([]() { RendererAPI::Init(); });
+		s_Data.m_ShaderLibrary = Ref<ShaderLibrary>::Create();
+		Renderer::Submit([](){ RendererAPI::Init(); });
 
 		Renderer::GetShaderLibrary()->Load("assets/shaders/HazelPBR_Static.glsl");
 		Renderer::GetShaderLibrary()->Load("assets/shaders/HazelPBR_Anim.glsl");
@@ -73,14 +73,14 @@ namespace Hazel {
 		Renderer2D::Init();
 	}
 
-	const Scope<ShaderLibrary>& Renderer::GetShaderLibrary()
+	Ref<ShaderLibrary> Renderer::GetShaderLibrary()
 	{
 		return s_Data.m_ShaderLibrary;
 	}
 
 	void Renderer::Clear()
 	{
-		Renderer::Submit([]() {
+		Renderer::Submit([](){
 			RendererAPI::Clear(0.0f, 0.0f, 0.0f, 1.0f);
 		});
 	}
@@ -105,7 +105,7 @@ namespace Hazel {
 	{
 		Renderer::Submit([=]() {
 			RendererAPI::DrawIndexed(count, type, depthTest);
-			});
+		});
 	}
 
 	void Renderer::SetLineThickness(float thickness)
@@ -120,17 +120,17 @@ namespace Hazel {
 		s_Data.m_CommandQueue.Execute();
 	}
 
-	void Renderer::BeginRenderPass(const Ref<RenderPass>& renderPass, bool clear)
+	void Renderer::BeginRenderPass(Ref<RenderPass> renderPass, bool clear)
 	{
 		HZ_CORE_ASSERT(renderPass, "Render pass cannot be null!");
 
 		// TODO: Convert all of this into a render command buffer
 		s_Data.m_ActiveRenderPass = renderPass;
-
+		
 		renderPass->GetSpecification().TargetFramebuffer->Bind();
 		if (clear)
 		{
-			const glm::vec4 & clearColor = renderPass->GetSpecification().TargetFramebuffer->GetSpecification().ClearColor;
+			const glm::vec4& clearColor = renderPass->GetSpecification().TargetFramebuffer->GetSpecification().ClearColor;
 			Renderer::Submit([=]() {
 				RendererAPI::Clear(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
 			});
@@ -144,7 +144,7 @@ namespace Hazel {
 		s_Data.m_ActiveRenderPass = nullptr;
 	}
 
-	void Renderer::SubmitQuad(const Ref<MaterialInstance>& material, const glm::mat4& transform)
+	void Renderer::SubmitQuad(Ref<MaterialInstance> material, const glm::mat4& transform)
 	{
 		bool depthTest = true;
 		if (material)
@@ -155,11 +155,12 @@ namespace Hazel {
 			auto shader = material->GetShader();
 			shader->SetMat4("u_Transform", transform);
 		}
+
 		s_Data.m_FullscreenQuadVertexArray->Bind();
 		Renderer::DrawIndexed(6, PrimitiveType::Triangles, depthTest);
 	}
 
-	void Renderer::SubmitFullscreenQuad(const Ref<MaterialInstance>& material)
+	void Renderer::SubmitFullscreenQuad(Ref<MaterialInstance> material)
 	{
 		bool depthTest = true;
 		if (material)
@@ -172,11 +173,10 @@ namespace Hazel {
 		Renderer::DrawIndexed(6, PrimitiveType::Triangles, depthTest);
 	}
 
-	void Renderer::SubmitMesh(const Ref<Mesh>& mesh, const glm::mat4& transform, const Ref<MaterialInstance>& overrideMaterial)
+	void Renderer::SubmitMesh(Ref<Mesh> mesh, const glm::mat4& transform, Ref<MaterialInstance> overrideMaterial)
 	{
 		// auto material = overrideMaterial ? overrideMaterial : mesh->GetMaterialInstance();
 		// auto shader = material->GetShader();
-
 		// TODO: Sort this out
 		mesh->m_VertexArray->Bind();
 
@@ -184,7 +184,7 @@ namespace Hazel {
 		for (Submesh& submesh : mesh->m_Submeshes)
 		{
 			// Material
-			auto material = materials[submesh.MaterialIndex];
+			auto material = overrideMaterial ? overrideMaterial : materials[submesh.MaterialIndex];
 			auto shader = material->GetShader();
 			material->Bind();
 
@@ -196,24 +196,24 @@ namespace Hazel {
 					mesh->m_MeshShader->SetMat4(uniformName, mesh->m_BoneTransforms[i]);
 				}
 			}
-			shader->SetMat4("u_Transform", transform* submesh.Transform);
+			shader->SetMat4("u_Transform", transform * submesh.Transform);
 
 			Renderer::Submit([submesh, material]() {
-				if (material->GetFlag(MaterialFlag::DepthTest))
+				if (material->GetFlag(MaterialFlag::DepthTest))	
 					glEnable(GL_DEPTH_TEST);
 				else
 					glDisable(GL_DEPTH_TEST);
 
 				glDrawElementsBaseVertex(GL_TRIANGLES, submesh.IndexCount, GL_UNSIGNED_INT, (void*)(sizeof(uint32_t) * submesh.BaseIndex), submesh.BaseVertex);
-			}); 
+			});
 		}
 	}
 
-	void Renderer::DrawAABB(const Ref<Mesh>& mesh, const glm::mat4& transform, const glm::vec4& color)
+	void Renderer::DrawAABB(Ref<Mesh> mesh, const glm::mat4& transform, const glm::vec4& color)
 	{
 		for (Submesh& submesh : mesh->m_Submeshes)
 		{
-			auto& aabb = submesh.BoundingBox; 
+			auto& aabb = submesh.BoundingBox;
 			auto aabbTransform = transform * submesh.Transform;
 			DrawAABB(aabb, aabbTransform);
 		}
@@ -224,7 +224,7 @@ namespace Hazel {
 		glm::vec4 min = { aabb.Min.x, aabb.Min.y, aabb.Min.z, 1.0f };
 		glm::vec4 max = { aabb.Max.x, aabb.Max.y, aabb.Max.z, 1.0f };
 
-		glm::vec4 corners[8] = 
+		glm::vec4 corners[8] =
 		{
 			transform * glm::vec4 { aabb.Min.x, aabb.Min.y, aabb.Max.z, 1.0f },
 			transform * glm::vec4 { aabb.Min.x, aabb.Max.y, aabb.Max.z, 1.0f },

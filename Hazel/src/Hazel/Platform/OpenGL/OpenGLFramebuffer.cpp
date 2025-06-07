@@ -1,10 +1,11 @@
-﻿#include "hzpch.h"
+#include "hzpch.h"
 #include "OpenGLFramebuffer.h"
 
 #include "Hazel/Renderer/Renderer.h"
 #include <glad/glad.h>
 
 namespace Hazel {
+
 
 	OpenGLFramebuffer::OpenGLFramebuffer(const FramebufferSpecification& spec)
 		: m_Specification(spec)
@@ -15,11 +16,10 @@ namespace Hazel {
 	OpenGLFramebuffer::~OpenGLFramebuffer()
 	{
 		Renderer::Submit([this]() {
-			glDeleteFramebuffers(1, &m_RendererID); // 删除帧缓冲对象
+			glDeleteFramebuffers(1, &m_RendererID);
 		});
 	}
 
-	// 调整帧缓冲区大小，并重新分配相关OpenGL资源
 	void OpenGLFramebuffer::Resize(uint32_t width, uint32_t height, bool forceRecreate)
 	{
 		if (!forceRecreate && (m_Specification.Width == width && m_Specification.Height == height))
@@ -36,7 +36,6 @@ namespace Hazel {
 				glDeleteTextures(1, &m_DepthAttachment);
 			}
 
-			// 创建新的帧缓冲对象
 			glGenFramebuffers(1, &m_RendererID);
 			glBindFramebuffer(GL_FRAMEBUFFER, m_RendererID);
 
@@ -44,7 +43,7 @@ namespace Hazel {
 			if (multisample)
 			{
 				glCreateTextures(GL_TEXTURE_2D_MULTISAMPLE, 1, &m_ColorAttachment);
-					glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_ColorAttachment);
+				glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_ColorAttachment);
 
 				// TODO: Create Hazel texture object based on format here
 				if (m_Specification.Format == FramebufferFormat::RGBA16F)
@@ -61,7 +60,7 @@ namespace Hazel {
 			}
 			else
 			{
-				glCreateTextures(GL_TEXTURE_2D, 1, &m_ColorAttachment); 
+				glCreateTextures(GL_TEXTURE_2D, 1, &m_ColorAttachment);
 				glBindTexture(GL_TEXTURE_2D, m_ColorAttachment);
 
 				// TODO: Create Hazel texture object based on format here
@@ -77,7 +76,7 @@ namespace Hazel {
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_ColorAttachment, 0);
 			}
-			
+
 			if (multisample)
 			{
 				glCreateTextures(GL_TEXTURE_2D_MULTISAMPLE, 1, &m_DepthAttachment);
@@ -103,11 +102,10 @@ namespace Hazel {
 
 			glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, m_DepthAttachment, 0);
 
-			// 检查帧缓冲完整性
 			HZ_CORE_ASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE, "Framebuffer is incomplete!");
 
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-			});
+		});
 	}
 
 	void OpenGLFramebuffer::Bind() const
@@ -125,7 +123,6 @@ namespace Hazel {
 		});
 	}
 
-	// 绑定颜色附件纹理到指定纹理槽
 	void OpenGLFramebuffer::BindTexture(uint32_t slot) const
 	{
 		Renderer::Submit([=]() {

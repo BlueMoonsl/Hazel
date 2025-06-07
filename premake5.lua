@@ -19,11 +19,20 @@ IncludeDir["GLFW"] = "Hazel/vendor/GLFW/include"
 IncludeDir["Glad"] = "Hazel/vendor/Glad/include"
 IncludeDir["ImGui"] = "Hazel/vendor/ImGui"
 IncludeDir["glm"] = "Hazel/vendor/glm"
+IncludeDir["entt"] = "Hazel/vendor/entt/include"
+IncludeDir["FastNoise"] = "Hazel/vendor/FastNoise"
+IncludeDir["mono"] = "Hazel/vendor/mono/include"
 
+LibraryDir = {}
+LibraryDir["mono"] = "vendor/mono/lib/Debug/mono-2.0-sgen.lib"
+
+group "Dependencies"
 include "Hazel/vendor/GLFW"
 include "Hazel/vendor/Glad"
 include "Hazel/vendor/ImGui"
+group ""
 
+group "Core"
 project "Hazel"
         location "Hazel"
         kind "StaticLib"
@@ -42,7 +51,13 @@ project "Hazel"
             "%{prj.name}/src/**.h", 
             "%{prj.name}/src/**.c", 
             "%{prj.name}/src/**.hpp", 
-            "%{prj.name}/src/**.cpp" 
+            "%{prj.name}/src/**.cpp",
+
+		    "%{prj.name}/vendor/FastNoise/**.cpp",
+
+            "%{prj.name}/vendor/yaml-cpp/src/**.cpp",
+            "%{prj.name}/vendor/yaml-cpp/src/**.h",
+            "%{prj.name}/vendor/yaml-cpp/include/**.h"
         }
 
         includedirs
@@ -53,8 +68,12 @@ project "Hazel"
             "%{IncludeDir.Glad}",
             "%{IncludeDir.glm}",
             "%{IncludeDir.ImGui}",
+            "%{IncludeDir.entt}",
+            "%{IncludeDir.mono}",
+            "%{IncludeDir.FastNoise}",
             "%{prj.name}/vendor/assimp/include",
-            "%{prj.name}/vendor/stb/include"
+            "%{prj.name}/vendor/stb/include",
+		    "%{prj.name}/vendor/yaml-cpp/include"
         }
     
         links 
@@ -62,9 +81,13 @@ project "Hazel"
             "GLFW",
             "Glad",
             "ImGui",
-            "opengl32.lib"
+            "opengl32.lib",
+            "%{LibraryDir.mono}"
         }
     
+        filter "files:Hazel/vendor/FastNoise/**.cpp or files:Hazel/vendor/yaml-cpp/src/**.cpp"
+   	    flags { "NoPCH" }
+
         filter "system:windows"
             systemversion "latest"
             
@@ -89,6 +112,21 @@ project "Hazel"
             buildoptions "/MD"
             optimize "On"
 
+project "Hazel-ScriptCore"
+        location "Hazel-ScriptCore"
+        kind "SharedLib"
+        language "C#"
+
+        targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+        objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+        files 
+        {
+            "%{prj.name}/src/**.cs", 
+        }
+group ""
+
+group "Tools"
 project "Hazelnut"
         location "Hazelnut"
         kind "ConsoleApp"
@@ -117,6 +155,7 @@ project "Hazelnut"
             "%{prj.name}/src",
             "Hazel/src",
             "Hazel/vendor",
+            "%{IncludeDir.entt}",
             "%{IncludeDir.glm}"
         }
 	
@@ -140,7 +179,8 @@ project "Hazelnut"
 
             postbuildcommands
             {
-                '{COPY} "../Hazel/vendor/assimp/bin/Debug/assimp-vc143-mtd.dll" "%{cfg.targetdir}"'
+                '{COPY} "../Hazel/vendor/assimp/bin/Debug/assimp-vc143-mtd.dll" "%{cfg.targetdir}"',
+                '{COPY} "../Hazel/vendor/mono/bin/Debug/mono-2.0-sgen.dll" "%{cfg.targetdir}"'
             }
 
         filter "configurations:Release"
@@ -155,7 +195,8 @@ project "Hazelnut"
 
             postbuildcommands 
             {
-                '{COPY} "../Hazel/vendor/assimp/bin/Release/assimp-vc143-mt.dll" "%{cfg.targetdir}"'
+                '{COPY} "../Hazel/vendor/assimp/bin/Release/assimp-vc143-mt.dll" "%{cfg.targetdir}"',
+                '{COPY} "../Hazel/vendor/mono/bin/Debug/mono-2.0-sgen.dll" "%{cfg.targetdir}"'
             }
 
         filter "configurations:Dist"
@@ -170,8 +211,52 @@ project "Hazelnut"
 
             postbuildcommands
             {
-                '{COPY} "../Hazel/vendor/assimp/bin/Release/assimp-vc141-mtd.dll" "%{cfg.targetdir}"'
+                '{COPY} "../Hazel/vendor/assimp/bin/Release/assimp-vc143-mtd.dll" "%{cfg.targetdir}"',
+			    '{COPY} "../Hazel/vendor/mono/bin/Debug/mono-2.0-sgen.dll" "%{cfg.targetdir}"'
             }
+group ""
+
+workspace "Sandbox"
+	architecture "x64"
+	targetdir "build"
+	
+	configurations 
+	{ 
+		"Debug", 
+		"Release",
+		"Dist"
+	}
+
+project "Hazel-ScriptCore"
+        location "Hazel-ScriptCore"
+        kind "SharedLib"
+        language "C#"
+
+        targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+        objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+        files 
+        {
+            "%{prj.name}/src/**.cs", 
+        }
+
+project "ExampleApp"
+        location "ExampleApp"
+        kind "SharedLib"
+        language "C#"
+
+        targetdir ("Hazelnut/assets/scripts")
+        objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+        files 
+        {
+            "%{prj.name}/src/**.cs", 
+        }
+
+        links
+        {
+            "Hazel-ScriptCore"
+        }
             
 --[[project "Sandbox"
 	location "Sandbox"

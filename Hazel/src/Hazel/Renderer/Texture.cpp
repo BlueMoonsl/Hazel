@@ -1,4 +1,4 @@
-﻿#include "hzpch.h"
+#include "hzpch.h"
 #include "Texture.h"
 
 #include "Hazel/Renderer/RendererAPI.h"
@@ -6,35 +6,32 @@
 
 namespace Hazel {
 
-	// 创建新的纹理对象
 	Ref<Texture2D> Texture2D::Create(TextureFormat format, unsigned int width, unsigned int height, TextureWrap wrap)
 	{
 		switch (RendererAPI::Current())
 		{
-		case RendererAPIType::None: return nullptr;
-		case RendererAPIType::OpenGL: return CreateRef<OpenGLTexture2D>(format, width, height, wrap);
+			case RendererAPIType::None: return nullptr;
+			case RendererAPIType::OpenGL: return Ref<OpenGLTexture2D>::Create(format, width, height, wrap);
 		}
 		return nullptr;
 	}
 
-	// 从文件创建纹理对象
 	Ref<Texture2D> Texture2D::Create(const std::string& path, bool srgb)
 	{
 		switch (RendererAPI::Current())
 		{
-		case RendererAPIType::None: return nullptr;
-		case RendererAPIType::OpenGL: return CreateRef<OpenGLTexture2D>(path, srgb);
+			case RendererAPIType::None: return nullptr;
+			case RendererAPIType::OpenGL: return Ref<OpenGLTexture2D>::Create(path, srgb);
 		}
 		return nullptr;
 	}
 
-	// 从文件创建立方体纹理对象
 	Ref<TextureCube> TextureCube::Create(TextureFormat format, uint32_t width, uint32_t height)
 	{
 		switch (RendererAPI::Current())
 		{
-		case RendererAPIType::None: return nullptr;
-		case RendererAPIType::OpenGL: return CreateRef<OpenGLTextureCube>(format, width, height);
+			case RendererAPIType::None: return nullptr;
+			case RendererAPIType::OpenGL: return Ref<OpenGLTextureCube>::Create(format, width, height);
 		}
 		return nullptr;
 	}
@@ -43,19 +40,18 @@ namespace Hazel {
 	{
 		switch (RendererAPI::Current())
 		{
-		case RendererAPIType::None: return nullptr;
-		case RendererAPIType::OpenGL: return CreateRef<OpenGLTextureCube>(path);
+			case RendererAPIType::None: return nullptr;
+			case RendererAPIType::OpenGL: return Ref<OpenGLTextureCube>::Create(path);
 		}
 		return nullptr;
 	}
 
-	// 获取纹理格式的通道数
 	uint32_t Texture::GetBPP(TextureFormat format)
 	{
 		switch (format)
 		{
-		case TextureFormat::RGB:    return 3;
-		case TextureFormat::RGBA:   return 4;
+			case TextureFormat::RGB:    return 3;
+			case TextureFormat::RGBA:   return 4;
 		}
 		return 0;
 	}

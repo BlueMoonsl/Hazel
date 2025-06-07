@@ -23,7 +23,7 @@ namespace Hazel {
 	};
 
 	// 桌面系统窗口接口，所有平台窗口需实现此接口
-	class Window
+	class Window : public RefCounted
 	{
 	public:
 		using EventCallbackFn = std::function<void(Event&)>;

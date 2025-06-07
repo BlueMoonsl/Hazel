@@ -1,4 +1,4 @@
-﻿// Basic Texture Shader
+// Basic Texture Shader
 
 #type vertex
 #version 430 core

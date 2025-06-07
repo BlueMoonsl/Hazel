@@ -1,10 +1,9 @@
-﻿#pragma once
+#pragma once
 
 namespace Hazel {
 
 	using RendererID = uint32_t;
 
-	// API类型
 	enum class RendererAPIType
 	{
 		None,
@@ -17,15 +16,14 @@ namespace Hazel {
 		None = 0, Triangles, Lines
 	};
 
-	// 渲染信息
 	struct RenderAPICapabilities
 	{
-		std::string Vendor;		// 供应商
-		std::string Renderer;	// 显卡型号
-		std::string Version;	// 渲染API版本
+		std::string Vendor;
+		std::string Renderer;
+		std::string Version;
 
-		int MaxSamples = 0;			// 最大MSAA级别
-		float MaxAnisotropy = 0.0f;	// 最大各向异性过滤级别
+		int MaxSamples = 0;
+		float MaxAnisotropy = 0.0f;
 		int MaxTextureUnits = 0;
 	};
 
@@ -55,6 +53,5 @@ namespace Hazel {
 	private:
 		static RendererAPIType s_CurrentRendererAPI;
 	};
-
 
 }

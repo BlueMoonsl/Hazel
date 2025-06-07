@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "RenderCommandQueue.h"
 #include "RenderPass.h"
@@ -13,25 +13,24 @@ namespace Hazel {
 	class Renderer
 	{
 	public:
-		// 渲染命令函数指针类型
-		typedef void(*RenderCommandFn)(void*);							
-		
-		static void Clear();												// 渲染命令：清空帧缓冲
-		static void Clear(float r, float g, float b, float a = 1.0f);  		// 渲染命令：以指定颜色清空帧缓冲
-		static void SetClearColor(float r, float g, float b, float a);		// 设置清空颜色
+		typedef void(*RenderCommandFn)(void*);
+
+		// Commands
+		static void Clear();
+		static void Clear(float r, float g, float b, float a = 1.0f);
+		static void SetClearColor(float r, float g, float b, float a);
 
 		static void DrawIndexed(uint32_t count, PrimitiveType type, bool depthTest = true);
-
+		
 		// For OpenGL
 		static void SetLineThickness(float thickness);
 
-		static void ClearMagenta();											// 清空为洋红色（调试用）
+		static void ClearMagenta();
 
 		static void Init();
 
-		static const Scope<ShaderLibrary>& GetShaderLibrary();
+		static Ref<ShaderLibrary> GetShaderLibrary();
 
-		// 提交渲染命令到命令队列
 		template<typename FuncT>
 		static void Submit(FuncT&& func)
 		{
@@ -53,19 +52,18 @@ namespace Hazel {
 			return s_Instance->m_CommandQueue.Allocate(fn, size);
 		}*/
 
-		// 等待并执行渲染命令队列
 		static void WaitAndRender();
 
 		// ~Actual~ Renderer here... TODO: remove confusion later
-		static void BeginRenderPass(const Ref<RenderPass>& renderPass, bool clear = true);
+		static void BeginRenderPass(Ref<RenderPass> renderPass, bool clear = true);
 		static void EndRenderPass();
 
-		static void SubmitQuad(const Ref<MaterialInstance>& material, const glm::mat4& transform = glm::mat4(1.0f));
-		static void SubmitFullscreenQuad(const Ref<MaterialInstance>& material);
-		static void SubmitMesh(const Ref<Mesh>& mesh, const glm::mat4& transform, const Ref<MaterialInstance>& overrideMaterial = nullptr);
-	
-		static void DrawAABB(const AABB& aabb, const glm::mat4& transform, const glm::vec4& color = glm::vec4(1.0f)); 
-		static void DrawAABB(const Ref<Mesh>& mesh, const glm::mat4& transform, const glm::vec4& color = glm::vec4(1.0f));
+		static void SubmitQuad(Ref<MaterialInstance> material, const glm::mat4& transform = glm::mat4(1.0f));
+		static void SubmitFullscreenQuad(Ref<MaterialInstance> material);
+		static void SubmitMesh(Ref<Mesh> mesh, const glm::mat4& transform, Ref<MaterialInstance> overrideMaterial = nullptr);
+
+		static void DrawAABB(const AABB& aabb, const glm::mat4& transform, const glm::vec4& color = glm::vec4(1.0f));
+		static void DrawAABB(Ref<Mesh> mesh, const glm::mat4& transform, const glm::vec4& color = glm::vec4(1.0f));
 	private:
 		static RenderCommandQueue& GetRenderCommandQueue();
 	};

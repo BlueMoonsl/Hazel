@@ -10,4 +10,5 @@
 	url = https://github.com/g-truc/glm
 [submodule "Hazel/vendor/FastNoise"]
 	path = Hazel/vendor/FastNoise
-	url = https://github.com/Auburns/FastNoise
+	url = https://github.com/Auburn/FastNoiseLite
+	branch = FastNoise-Legacy
