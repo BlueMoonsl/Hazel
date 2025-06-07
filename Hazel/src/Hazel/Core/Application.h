@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Hazel/Core/Base.h"
 #include "Hazel/Core/Timestep.h"
@@ -39,10 +39,13 @@ namespace Hazel {
 		std::string SaveFile(const char* filter = "All\0*.*\0") const;
 
 		inline Window& GetWindow() { return *m_Window; }
-
+		
 		static inline Application& Get() { return *s_Instance; }
 
 		float GetTime() const; // TODO: This should be in "Platform"
+
+		static const char* GetConfigurationName();
+		static const char* GetPlatformName();
 	private:
 		bool OnWindowResize(WindowResizeEvent& e);
 		bool OnWindowClose(WindowCloseEvent& e);

@@ -12,6 +12,8 @@
 #include "Hazel/Core/Input.h"
 #include <mono/jit/jit.h>
 
+#include <box2d/box2d.h>
+
 namespace Hazel {
 	extern std::unordered_map<MonoType*, std::function<bool(Entity&)>> s_HasComponentFuncs;
 	extern std::unordered_map<MonoType*, std::function<void(Entity&)>> s_CreateComponentFuncs;
@@ -129,6 +131,20 @@ namespace Hazel { namespace Script {
 		meshComponent.Mesh = inMesh ? *inMesh : nullptr;
 	}
 
+	void Hazel_RigidBody2DComponent_ApplyLinearImpulse(uint64_t entityID, glm::vec2* impulse, glm::vec2* offset, bool wake)
+	{
+		Ref<Scene> scene = ScriptEngine::GetCurrentSceneContext();
+		HZ_CORE_ASSERT(scene, "No active scene!");
+		const auto& entityMap = scene->GetEntityMap();
+		HZ_CORE_ASSERT(entityMap.find(entityID) != entityMap.end(), "Invalid entity ID or entity doesn't exist in scene!");
+
+		Entity entity = entityMap.at(entityID);
+		HZ_CORE_ASSERT(entity.HasComponent<RigidBody2DComponent>());
+		auto& component = entity.GetComponent<RigidBody2DComponent>();
+		b2Body* body = (b2Body*)component.RuntimeBody;
+		body->ApplyLinearImpulse(*(const b2Vec2*)impulse, body->GetWorldCenter() + *(const b2Vec2*)offset, wake);
+	}
+
 	Ref<Mesh>* Hazel_Mesh_Constructor(MonoString* filepath)
 	{
 		return new Ref<Mesh>(new Mesh(mono_string_to_utf8(filepath)));
@@ -226,6 +242,12 @@ namespace Hazel { namespace Script {
 	}
 
 	void Hazel_MaterialInstance_SetVector3(Ref<MaterialInstance>* _this, MonoString* uniform, glm::vec3* value)
+	{
+		Ref<MaterialInstance>& instance = *(Ref<MaterialInstance>*)_this;
+		instance->Set(mono_string_to_utf8(uniform), *value);
+	}
+
+	void Hazel_MaterialInstance_SetVector4(Ref<MaterialInstance>* _this, MonoString* uniform, glm::vec4* value)
 	{
 		Ref<MaterialInstance>& instance = *(Ref<MaterialInstance>*)_this;
 		instance->Set(mono_string_to_utf8(uniform), *value);
