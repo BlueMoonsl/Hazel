@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #ifdef HZ_PLATFORM_WINDOWS
 #include <Windows.h>
@@ -17,3 +17,6 @@
 #include <Hazel/Core/Base.h>
 #include <Hazel/Core/Log.h>
 #include <Hazel/Core/Events/Event.h>
+
+// Math
+#include <Hazel/Core/Math/Mat4.h>

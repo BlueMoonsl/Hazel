@@ -15,19 +15,10 @@ namespace Hazel {
 		switch (format)
 		{
 			case Hazel::TextureFormat::RGB:     return GL_RGB;
-			case Hazel::TextureFormat::RGBA:    return GL_RGBA;
+			case Hazel::TextureFormat::RGBA:    return GL_RGBA; 
+			case Hazel::TextureFormat::Float16: return GL_RGBA16F;
 		}
 		return 0;
-	}
-
-	// 计算给定宽高下的最大 MipMap 等级数
-	static int CalculateMipMapCount(int width, int height)
-	{
-		int levels = 1;
-		while ((width | height) >> levels) {
-			levels++;
-		}
-		return levels;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////
@@ -35,7 +26,7 @@ namespace Hazel {
 	//////////////////////////////////////////////////////////////////////////////////
 
 	// 构造函数：创建指定格式和尺寸的 2D 纹理
-	OpenGLTexture2D::OpenGLTexture2D(TextureFormat format, unsigned int width, unsigned int height, TextureWrap wrap)
+	OpenGLTexture2D::OpenGLTexture2D(TextureFormat format, uint32_t width, uint32_t height, TextureWrap wrap)
 		: m_Format(format), m_Width(width), m_Height(height), m_Wrap(wrap)
 	{
 		auto self = this;
@@ -54,10 +45,11 @@ namespace Hazel {
 
 			// 分配纹理存储空间
 			glTexImage2D(GL_TEXTURE_2D, 0, HazelToOpenGLTextureFormat(m_Format), m_Width, m_Height, 0, HazelToOpenGLTextureFormat(m_Format), GL_UNSIGNED_BYTE, nullptr);
-			glGenerateMipmap(GL_TEXTURE_2D);
 
 			glBindTexture(GL_TEXTURE_2D, 0);
 		});
+
+		m_ImageData.Allocate(width * height * Texture::GetBPP(m_Format));
 	}
 
 	// 构造函数：从文件加载 2D 纹理，支持 sRGB 格式
@@ -65,21 +57,36 @@ namespace Hazel {
 		: m_FilePath(path)
 	{
 		int width, height, channels;
-		HZ_CORE_INFO("Loading texture {0}, srgb={1}", path, srgb);
-		m_ImageData.Data = stbi_load(path.c_str(), &width, &height, &channels, srgb ? STBI_rgb : STBI_rgb_alpha);
+		if (stbi_is_hdr(path.c_str()))
+		{
+			HZ_CORE_INFO("Loading HDR texture {0}, srgb={1}", path, srgb);
+			m_ImageData.Data = (byte*)stbi_loadf(path.c_str(), &width, &height, &channels, 0);
+			m_IsHDR = true;
+			m_Format = TextureFormat::Float16;
+		}
+		else
+		{
+			HZ_CORE_INFO("Loading texture {0}, srgb={1}", path, srgb);
+			m_ImageData.Data = stbi_load(path.c_str(), &width, &height, &channels, srgb ? STBI_rgb : STBI_rgb_alpha);
+			HZ_CORE_ASSERT(m_ImageData.Data, "Could not read image!");
+			m_Format = TextureFormat::RGBA;
+		}
+
+		if (!m_ImageData.Data)
+			return;
+
+		m_Loaded = true;
 
 		m_Width = width;
 		m_Height = height;
-		m_Format = TextureFormat::RGBA;
 
-		Renderer::Submit([this, srgb]()
+		Renderer::Submit([=]()
 		{
 			// sRGB 纹理与普通纹理的创建方式略有不同
 			if (srgb)
 			{
 				glCreateTextures(GL_TEXTURE_2D, 1, &m_RendererID);
-				int levels = CalculateMipMapCount(m_Width, m_Height);
-				HZ_CORE_INFO("Creating srgb texture width {0} mips", levels);
+				int levels = Texture::CalculateMipMapCount(m_Width, m_Height);
 				glTextureStorage2D(m_RendererID, levels, GL_SRGB8, m_Width, m_Height); 
 				glTextureParameteri(m_RendererID, GL_TEXTURE_MIN_FILTER, levels > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
 				glTextureParameteri(m_RendererID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -96,8 +103,12 @@ namespace Hazel {
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-				glTexImage2D(GL_TEXTURE_2D, 0, HazelToOpenGLTextureFormat(m_Format), m_Width, m_Height, 0, srgb ? GL_SRGB8 : HazelToOpenGLTextureFormat(m_Format), GL_UNSIGNED_BYTE, m_ImageData.Data);
+				GLenum internalFormat = HazelToOpenGLTextureFormat(m_Format);
+				GLenum format = srgb ? GL_SRGB8 : (m_IsHDR ? GL_RGB : HazelToOpenGLTextureFormat(m_Format)); // HDR = GL_RGB for now
+				GLenum type = internalFormat == GL_RGBA16F ? GL_FLOAT : GL_UNSIGNED_BYTE;
+				glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, m_Width, m_Height, 0, format, type, m_ImageData.Data);
 				glGenerateMipmap(GL_TEXTURE_2D);
 
 				glBindTexture(GL_TEXTURE_2D, 0);
@@ -156,9 +167,35 @@ namespace Hazel {
 		return m_ImageData;
 	}
 
+	uint32_t OpenGLTexture2D::GetMipLevelCount() const
+	{
+		return Texture::CalculateMipMapCount(m_Width, m_Height);
+	}
+
 	//////////////////////////////////////////////////////////////////////////////////
 	// TextureCube
 	//////////////////////////////////////////////////////////////////////////////////
+
+	OpenGLTextureCube::OpenGLTextureCube(TextureFormat format, uint32_t width, uint32_t height)
+	{
+		m_Width = width;
+		m_Height = height;
+		m_Format = format;
+
+		uint32_t levels = Texture::CalculateMipMapCount(width, height);
+
+		Renderer::Submit([=]() {
+			glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &m_RendererID);
+			glTextureStorage2D(m_RendererID, levels, HazelToOpenGLTextureFormat(m_Format), width, height);
+			glTextureParameteri(m_RendererID, GL_TEXTURE_MIN_FILTER, levels > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+			glTextureParameteri(m_RendererID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+			// glTextureParameterf(m_RendererID, GL_TEXTURE_MAX_ANISOTROPY, 16);
+			});
+	}
 
 	// 构造函数：从单张贴图加载立方体纹理（假设为 3x4 布局的 cross 贴图）
 	OpenGLTextureCube::OpenGLTextureCube(const std::string& path)
@@ -172,8 +209,8 @@ namespace Hazel {
 		m_Height = height;
 		m_Format = TextureFormat::RGB;
 
-		unsigned int faceWidth = m_Width / 4;
-		unsigned int faceHeight = m_Height / 3;
+		uint32_t  faceWidth = m_Width / 4;
+		uint32_t  faceHeight = m_Height / 3;
 		HZ_CORE_ASSERT(faceWidth == faceHeight, "Non-square faces!"); // 立方体每个面必须为正方形
 
 		std::array<unsigned char*, 6> faces;
@@ -229,6 +266,7 @@ namespace Hazel {
 			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 			glTextureParameterf(m_RendererID, GL_TEXTURE_MAX_ANISOTROPY, RendererAPI::GetCapabilities().MaxAnisotropy);
 
 			auto format = HazelToOpenGLTextureFormat(m_Format);
@@ -271,4 +309,10 @@ namespace Hazel {
 			glBindTextureUnit(slot, m_RendererID);
 		});
 	}
+
+	uint32_t OpenGLTextureCube::GetMipLevelCount() const
+	{
+		return Texture::CalculateMipMapCount(m_Width, m_Height);
+	}
+
 }

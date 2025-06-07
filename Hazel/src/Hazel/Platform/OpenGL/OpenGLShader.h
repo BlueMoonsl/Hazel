@@ -22,6 +22,7 @@ namespace Hazel {
 
 		// 绑定着色器到渲染管线
 		virtual void Bind() override;
+		virtual RendererID GetRendererID() const override { return m_RendererID; }
 
 		// 上传 Uniform 缓冲区到 GPU
 		virtual void UploadUniformBuffer(const UniformBufferBase& uniformBuffer) override;
@@ -32,8 +33,11 @@ namespace Hazel {
 
 		// 临时接口：设置 float、mat4 类型 Uniform
 		virtual void SetFloat(const std::string& name, float value) override;
+		virtual void SetInt(const std::string& name, int value) override;
 		virtual void SetMat4(const std::string& name, const glm::mat4& value) override;
 		virtual void SetMat4FromRenderThread(const std::string& name, const glm::mat4& value, bool bind = true) override;
+
+		virtual void SetIntArray(const std::string& name, int* values, uint32_t size) override;
 
 		// 获取着色器名称
 		virtual const std::string& GetName() const override { return m_Name; }
@@ -62,7 +66,7 @@ namespace Hazel {
 
 		// 上传不同类型的 Uniform 到指定 location
 		void UploadUniformInt(uint32_t location, int32_t value);
-		void UploadUniformIntArray(uint32_t location, int32_t* values, int32_t count);
+		void UploadUniformIntArray(uint32_t location, int32_t* values, uint32_t count);
 		void UploadUniformFloat(uint32_t location, float value);
 		void UploadUniformFloat2(uint32_t location, const glm::vec2& value);
 		void UploadUniformFloat3(uint32_t location, const glm::vec3& value);
@@ -85,17 +89,17 @@ namespace Hazel {
 
 		void UploadUniformMat4(const std::string& name, const glm::mat4& value);
 
-		// 获取顶点/像素着色器 Uniform 缓冲区声明列表
-		inline const ShaderUniformBufferList& GetVSRendererUniforms() const override { return m_VSRendererUniformBuffers; }
-		inline const ShaderUniformBufferList& GetPSRendererUniforms() const override { return m_PSRendererUniformBuffers; }
-		// 获取材质 Uniform 缓冲区声明
-		inline const ShaderUniformBufferDeclaration& GetVSMaterialUniformBuffer() const override { return *m_VSMaterialUniformBuffer; }
-		inline const ShaderUniformBufferDeclaration& GetPSMaterialUniformBuffer() const override { return *m_PSMaterialUniformBuffer; }
-		// 获取着色器资源列表
-		inline const ShaderResourceList& GetResources() const override { return m_Resources; }
+		virtual const ShaderUniformBufferList& GetVSRendererUniforms() const override { return m_VSRendererUniformBuffers; }
+		virtual const ShaderUniformBufferList& GetPSRendererUniforms() const override { return m_PSRendererUniformBuffers; }
+		virtual bool HasVSMaterialUniformBuffer() const override { return (bool)m_VSMaterialUniformBuffer; }
+		virtual bool HasPSMaterialUniformBuffer() const override { return (bool)m_PSMaterialUniformBuffer; }
+		virtual const ShaderUniformBufferDeclaration& GetVSMaterialUniformBuffer() const override { return *m_VSMaterialUniformBuffer; }
+		virtual const ShaderUniformBufferDeclaration& GetPSMaterialUniformBuffer() const override { return *m_PSMaterialUniformBuffer; }
+		virtual const ShaderResourceList& GetResources() const override { return m_Resources; }
 	private:
 		RendererID m_RendererID = 0;	// OpenGL 着色器对象 ID
 		bool m_Loaded = false;			// 是否已加载
+		bool m_IsCompute = false;
 
 		std::string m_Name, m_AssetPath; // 着色器名称和资源路径
 		std::unordered_map<GLenum, std::string> m_ShaderSource; // 按类型存储源码

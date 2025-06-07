@@ -121,13 +121,17 @@ namespace Hazel
 		using ShaderReloadedCallback = std::function<void()>;
 
 		virtual void Reload() = 0;		// 重新加载着色
-		virtual void Bind() = 0;		// 绑定着色器到渲染管线
 
+		virtual void Bind() = 0;		// 绑定着色器到渲染管线
+		virtual RendererID GetRendererID() const = 0;
 		virtual void UploadUniformBuffer(const UniformBufferBase& uniformBuffer) = 0;	// 上传Uniform缓冲区到GPU
 
 		virtual void SetFloat(const std::string& name, float value) = 0;				// 临时接口：设置float类型Uniform
+		virtual void SetInt(const std::string& name, int value) = 0;
 		virtual void SetMat4(const std::string& name, const glm::mat4& value) = 0;		// 临时接口：设置mat4类型Uniform
 		virtual void SetMat4FromRenderThread(const std::string& name, const glm::mat4& value, bool bind = true) = 0;
+
+		virtual void SetIntArray(const std::string& name, int* values, uint32_t size) = 0;
 
 		virtual const std::string& GetName() const = 0;					// 获取着色器名称
 
@@ -139,6 +143,8 @@ namespace Hazel
 
 		virtual const ShaderUniformBufferList& GetVSRendererUniforms() const = 0;				// 获取顶点着色器渲染器Uniform列表
 		virtual const ShaderUniformBufferList& GetPSRendererUniforms() const = 0;				// 获取片段着色器渲染器Uniform列表
+		virtual bool HasVSMaterialUniformBuffer() const = 0;
+		virtual bool HasPSMaterialUniformBuffer() const = 0;
 		virtual const ShaderUniformBufferDeclaration& GetVSMaterialUniformBuffer() const = 0;   // 获取顶点着色器材质Uniform缓冲区声明
 		virtual const ShaderUniformBufferDeclaration& GetPSMaterialUniformBuffer() const = 0;   // 获取片段着色器材质Uniform缓冲区声明
 

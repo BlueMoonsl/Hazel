@@ -18,6 +18,9 @@ namespace Hazel {
 	{
 		m_Shader->AddShaderReloadedCallback(std::bind(&Material::OnShaderReloaded, this));
 		AllocateStorage();
+
+		m_MaterialFlags |= (uint32_t)MaterialFlag::DepthTest;
+		m_MaterialFlags |= (uint32_t)MaterialFlag::Blend;
 	}
 
 	Material::~Material()
@@ -27,18 +30,25 @@ namespace Hazel {
 	// 分配顶点/像素着色器 Uniform 缓冲区并初始化为0
 	void Material::AllocateStorage()
 	{
-		const auto& vsBuffer = m_Shader->GetVSMaterialUniformBuffer();
-		m_VSUniformStorageBuffer.Allocate(vsBuffer.GetSize());
-		m_VSUniformStorageBuffer.ZeroInitialize();
+		if (m_Shader->HasVSMaterialUniformBuffer())
+		{
+			const auto& vsBuffer = m_Shader->GetVSMaterialUniformBuffer();
+			m_VSUniformStorageBuffer.Allocate(vsBuffer.GetSize());
+			m_VSUniformStorageBuffer.ZeroInitialize();
+		}
 
-		const auto& psBuffer = m_Shader->GetPSMaterialUniformBuffer();
-		m_PSUniformStorageBuffer.Allocate(psBuffer.GetSize());
-		m_PSUniformStorageBuffer.ZeroInitialize();
+		if (m_Shader->HasPSMaterialUniformBuffer())
+		{
+			const auto& psBuffer = m_Shader->GetPSMaterialUniformBuffer();
+			m_PSUniformStorageBuffer.Allocate(psBuffer.GetSize());
+			m_PSUniformStorageBuffer.ZeroInitialize();
+		}
 	}
 
 	// 着色器重新加载时，重新分配 Uniform 存储并通知所有实例
 	void Material::OnShaderReloaded()
 	{
+		return;
 		AllocateStorage();
 
 		for (auto mi : m_MaterialInstances)
@@ -153,13 +163,31 @@ namespace Hazel {
 	// 分配 Uniform 存储空间，并从父材质拷贝初始值
 	void MaterialInstance::AllocateStorage()
 	{
-		const auto& vsBuffer = m_Material->m_Shader->GetVSMaterialUniformBuffer();
-		m_VSUniformStorageBuffer.Allocate(vsBuffer.GetSize());
-		memcpy(m_VSUniformStorageBuffer.Data, m_Material->m_VSUniformStorageBuffer.Data, vsBuffer.GetSize());
+		if (m_Material->m_Shader->HasVSMaterialUniformBuffer())
+		{
+			const auto& vsBuffer = m_Material->m_Shader->GetVSMaterialUniformBuffer();
+			m_VSUniformStorageBuffer.Allocate(vsBuffer.GetSize());
+			memcpy(m_VSUniformStorageBuffer.Data, m_Material->m_VSUniformStorageBuffer.Data, vsBuffer.GetSize());
+		}
 
-		const auto& psBuffer = m_Material->m_Shader->GetPSMaterialUniformBuffer();
-		m_PSUniformStorageBuffer.Allocate(psBuffer.GetSize());
-		memcpy(m_PSUniformStorageBuffer.Data, m_Material->m_PSUniformStorageBuffer.Data, psBuffer.GetSize());
+		if (m_Material->m_Shader->HasPSMaterialUniformBuffer())
+		{
+			const auto& psBuffer = m_Material->m_Shader->GetPSMaterialUniformBuffer();
+			m_PSUniformStorageBuffer.Allocate(psBuffer.GetSize());
+			memcpy(m_PSUniformStorageBuffer.Data, m_Material->m_PSUniformStorageBuffer.Data, psBuffer.GetSize());
+		}
+	}
+
+	void MaterialInstance::SetFlag(MaterialFlag flag, bool value)
+	{
+		if (value)
+		{
+			m_Material->m_MaterialFlags |= (uint32_t)flag;
+		}
+		else
+		{
+			m_Material->m_MaterialFlags &= ~(uint32_t)flag;
+		}
 	}
 
 	// 父材质值更新时，若未被实例覆盖则同步更新

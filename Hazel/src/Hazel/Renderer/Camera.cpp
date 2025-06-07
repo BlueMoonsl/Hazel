@@ -55,7 +55,7 @@ namespace Hazel {
 		return speed;
 	}
 
-	void Camera::Update(Timestep ts)
+	void Camera::OnUpdate(Timestep ts)
 	{	
 		// 按下左alt启用鼠标控制
 		if (Input::IsKeyPressed(GLFW_KEY_LEFT_ALT))
@@ -82,6 +82,20 @@ namespace Hazel {
 		m_ViewMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0, 0, 1)) * glm::toMat4(glm::conjugate(orientation)) * glm::translate(glm::mat4(1.0f), -m_Position);
 		m_ViewMatrix = glm::translate(glm::mat4(1.0f), m_Position) * glm::toMat4(orientation);
 		m_ViewMatrix = glm::inverse(m_ViewMatrix);
+	}
+
+	void Camera::OnEvent(Event& e)
+	{
+		EventDispatcher dispatcher(e);
+		dispatcher.Dispatch<MouseScrolledEvent>(HZ_BIND_EVENT_FN(Camera::OnMouseScroll));
+	}
+
+	bool Camera::OnMouseScroll(MouseScrolledEvent& e)
+	{
+
+		float delta = e.GetYOffset() * 0.1f;
+		MouseZoom(delta);
+		return false;
 	}
 
 	// 鼠标平移

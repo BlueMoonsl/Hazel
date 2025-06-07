@@ -8,14 +8,21 @@ namespace Hazel {
 	// OpenGL 调试信息回调函数
 	static void OpenGLLogMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
 	{
-		if (severity != GL_DEBUG_SEVERITY_NOTIFICATION)
+		switch (severity)
 		{
-			HZ_CORE_ERROR("{0}", message);      // 输出错误信息
-			HZ_CORE_ASSERT(false, "");          // 断言失败
-		}
-		else
-		{
-			// HZ_CORE_TRACE("{0}", message);      // 输出普通调试信息
+			case GL_DEBUG_SEVERITY_HIGH:
+				HZ_CORE_ERROR("[OpenGL Debug HIGH] {0}", message);
+				HZ_CORE_ASSERT(false, "GL_DEBUG_SEVERITY_HIGH");
+				break;
+			case GL_DEBUG_SEVERITY_MEDIUM:
+				HZ_CORE_WARN("[OpenGL Debug MEDIUM] {0}", message);
+				break;
+			case GL_DEBUG_SEVERITY_LOW:
+				HZ_CORE_INFO("[OpenGL Debug LOW] {0}", message);
+				break; 
+			case GL_DEBUG_SEVERITY_NOTIFICATION:
+				// HZ_CORE_TRACE("[OpenGL Debug NOTIFICATION] {0}", message);
+				break;
 		}
 	}
 
@@ -38,6 +45,8 @@ namespace Hazel {
 		glEnable(GL_BLEND);                // 启用混合
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); // 设置混合函数
 
+		glEnable(GL_MULTISAMPLE);
+
 		auto& caps = RendererAPI::GetCapabilities();
 
 		// 获取并保存显卡厂商、渲染器、OpenGL 版本等信息
@@ -47,6 +56,8 @@ namespace Hazel {
 
 		glGetIntegerv(GL_MAX_SAMPLES, &caps.MaxSamples); // 最大多重采样数
 		glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &caps.MaxAnisotropy); // 最大各向异性过滤
+
+		glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &caps.MaxTextureUnits);
 
 		// 检查并输出所有 OpenGL 错误
 		GLenum error = glGetError();
@@ -82,15 +93,31 @@ namespace Hazel {
 	}
 
 	// 绘制索引三角形，支持可选的深度测试开关
-	void RendererAPI::DrawIndexed(unsigned int count, bool depthTest)
+	void RendererAPI::DrawIndexed(uint32_t count, PrimitiveType type, bool depthTest)
 	{
 		if (!depthTest)
 			glDisable(GL_DEPTH_TEST);
 
-		glDrawElements(GL_TRIANGLES, count, GL_UNSIGNED_INT, nullptr);
+		GLenum glPrimitiveType = 0;
+			switch (type)
+			{
+			case PrimitiveType::Triangles:
+				glPrimitiveType = GL_TRIANGLES;
+				break;
+			case PrimitiveType::Lines:
+				glPrimitiveType = GL_LINES;
+				break;
+			}
+
+		glDrawElements(glPrimitiveType, count, GL_UNSIGNED_INT, nullptr);
 
 		if (!depthTest)
 			glEnable(GL_DEPTH_TEST);
+	}
+
+	void RendererAPI::SetLineThickness(float thickness)
+	{
+		glLineWidth(thickness);
 	}
 
 }

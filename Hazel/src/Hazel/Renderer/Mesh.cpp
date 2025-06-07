@@ -8,6 +8,7 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -19,7 +20,20 @@
 
 #include "Hazel/Renderer/Renderer.h"
 
+#include <filesystem>
+
 namespace Hazel {
+
+	glm::mat4 Mat4FromAssimpMat4(const aiMatrix4x4& matrix)
+	{
+		glm::mat4 result;
+		//the a,b,c,d in assimp is the row ; the 1,2,3,4 is the column
+		result[0][0] = matrix.a1; result[1][0] = matrix.a2; result[2][0] = matrix.a3; result[3][0] = matrix.a4;
+		result[0][1] = matrix.b1; result[1][1] = matrix.b2; result[2][1] = matrix.b3; result[3][1] = matrix.b4;
+		result[0][2] = matrix.c1; result[1][2] = matrix.c2; result[2][2] = matrix.c3; result[3][2] = matrix.c4;
+		result[0][3] = matrix.d1; result[1][3] = matrix.d2; result[2][3] = matrix.d3; result[3][3] = matrix.d4;
+		return result;
+	}
 
 	// Assimp 导入标志，控制模型导入时的处理方式
 	static const uint32_t s_MeshImportFlags =
@@ -50,18 +64,6 @@ namespace Hazel {
 			HZ_CORE_ERROR("Assimp error: {0}", message);
 		}
 	};
-	
-	// 将 Assimp 的 aiMatrix4x4 转换为 glm::mat4
-	static glm::mat4 aiMatrix4x4ToGlm(const aiMatrix4x4& from)
-	{
-		glm::mat4 to;
-		// Assimp 的矩阵按行主序，GLM 也是
-		to[0][0] = from.a1; to[1][0] = from.a2; to[2][0] = from.a3; to[3][0] = from.a4;
-		to[0][1] = from.b1; to[1][1] = from.b2; to[2][1] = from.b3; to[3][1] = from.b4;
-		to[0][2] = from.c1; to[1][2] = from.c2; to[2][2] = from.c3; to[3][2] = from.c4;
-		to[0][3] = from.d1; to[1][3] = from.d2; to[2][3] = from.d3; to[3][3] = from.d4;
-		return to;
-	}
 
 	// 从文件构造Mesh
 	Mesh::Mesh(const std::string& filename)
@@ -77,12 +79,15 @@ namespace Hazel {
 		if (!scene || !scene->HasMeshes())
 			HZ_CORE_ERROR("Failed to load mesh file: {0}", filename);
 
+		//double factor;
+		//scene->mMetaData->Get("UnitScaleFactor", factor);
+		//HZ_CORE_INFO("FBX Scene Scale: {0}", factor);
+
 		m_IsAnimated = scene->mAnimations != nullptr;
 		m_MeshShader = m_IsAnimated ? Renderer::GetShaderLibrary()->Get("HazelPBR_Anim") : Renderer::GetShaderLibrary()->Get("HazelPBR_Static");
-		m_Material.reset(new Hazel::Material(m_MeshShader));
-
-		// 计算根节点逆变换，用于骨骼动画
-		m_InverseTransform = glm::inverse(aiMatrix4x4ToGlm(scene->mRootNode->mTransformation));
+		m_BaseMaterial = CreateRef<Material>(m_MeshShader);
+		// m_MaterialInstance = std::make_shared<MaterialInstance>(m_BaseMaterial);
+		m_InverseTransform = glm::inverse(Mat4FromAssimpMat4(scene->mRootNode->mTransformation));
 
 		uint32_t vertexCount = 0;
 		uint32_t indexCount = 0;
@@ -92,12 +97,11 @@ namespace Hazel {
 		{
 			aiMesh* mesh = scene->mMeshes[m];
 
-			Submesh submesh;
+			Submesh& submesh = m_Submeshes.emplace_back();
 			submesh.BaseVertex = vertexCount;
 			submesh.BaseIndex = indexCount;
 			submesh.MaterialIndex = mesh->mMaterialIndex;
 			submesh.IndexCount = mesh->mNumFaces * 3;
-			m_Submeshes.push_back(submesh);
 
 			vertexCount += mesh->mNumVertices;
 			indexCount += submesh.IndexCount;
@@ -128,11 +132,20 @@ namespace Hazel {
 			}
 			else
 			{
+				submesh.Min = { FLT_MAX, FLT_MAX, FLT_MAX };
+				submesh.Max = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
 				for (size_t i = 0; i < mesh->mNumVertices; i++)
 				{
 					Vertex vertex;
 					vertex.Position = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
 					vertex.Normal = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
+					submesh.Min.x = glm::min(vertex.Position.x, submesh.Min.x); 
+					submesh.Min.y = glm::min(vertex.Position.y, submesh.Min.y);
+					submesh.Min.z = glm::min(vertex.Position.z, submesh.Min.z);
+					submesh.Max.x = glm::max(vertex.Position.x, submesh.Max.x);
+					submesh.Max.y = glm::max(vertex.Position.y, submesh.Max.y);
+					submesh.Max.z = glm::max(vertex.Position.z, submesh.Max.z);
+
 					if (mesh->HasTangentsAndBitangents())
 					{
 						vertex.Tangent = { mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z };
@@ -177,7 +190,7 @@ namespace Hazel {
 						m_BoneCount++;
 						BoneInfo bi;
 						m_BoneInfo.push_back(bi);
-						m_BoneInfo[boneIndex].BoneOffset = aiMatrix4x4ToGlm(bone->mOffsetMatrix);
+						m_BoneInfo[boneIndex].BoneOffset = Mat4FromAssimpMat4(bone->mOffsetMatrix);
 						m_BoneMapping[boneName] = boneIndex;
 					}
 					else
@@ -191,6 +204,227 @@ namespace Hazel {
 						int VertexID = submesh.BaseVertex + bone->mWeights[j].mVertexId;
 						float Weight = bone->mWeights[j].mWeight;
 						m_AnimatedVertices[VertexID].AddBoneData(boneIndex, Weight);
+					}
+				}
+			}
+		}
+
+		// Materials
+		if (scene->HasMaterials())
+		{
+			m_Textures.resize(scene->mNumMaterials);
+			m_Materials.resize(scene->mNumMaterials);
+			for (uint32_t i = 0; i < scene->mNumMaterials; i++)
+			{
+				auto aiMaterial = scene->mMaterials[i];
+				auto aiMaterialName = aiMaterial->GetName();
+
+				auto mi = CreateRef<MaterialInstance>(m_BaseMaterial);
+				m_Materials[i] = mi;
+
+				HZ_CORE_INFO("Material Name = {0}; Index = {1}", aiMaterialName.data, i);
+				aiString aiTexPath;
+				uint32_t textureCount = aiMaterial->GetTextureCount(aiTextureType_DIFFUSE);
+				HZ_CORE_TRACE("  TextureCount = {0}", textureCount);
+
+				aiColor3D aiColor;
+				aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, aiColor);
+				HZ_CORE_TRACE("COLOR = {0}, {1}, {2}", aiColor.r, aiColor.g, aiColor.b);
+
+				if (aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &aiTexPath) == AI_SUCCESS)
+				{
+					// TODO: Temp - this should be handled by Hazel's filesystem
+					std::filesystem::path path = filename;
+					auto parentPath = path.parent_path();
+					parentPath /= std::string(aiTexPath.data);
+					std::string texturePath = parentPath.string();
+
+					auto texture = Texture2D::Create(texturePath, true);
+					if (texture->Loaded())
+					{
+						m_Textures[i] = texture;
+						HZ_CORE_TRACE("  Texture Path = {0}", texturePath);
+						mi->Set("u_AlbedoTexture", m_Textures[i]);
+						mi->Set("u_AlbedoTexToggle", 1.0f);
+					}
+					else
+					{
+						HZ_CORE_ERROR("Could not load texture: {0}", texturePath);
+						//mi->Set("u_AlbedoTexToggle", 0.0f);
+						mi->Set("u_AlbedoColor", glm::vec3{ aiColor.r, aiColor.g, aiColor.b });
+					}
+				}
+				else
+				{
+					mi->Set("u_AlbedoTexToggle", 0.0f);
+					mi->Set("u_AlbedoColor", glm::vec3{ aiColor.r, aiColor.g, aiColor.b });
+
+					HZ_CORE_TRACE("Mesh has no albedo map");
+				}
+
+				// Normal maps
+				mi->Set("u_NormalTexToggle", 0.0f);
+				if (aiMaterial->GetTexture(aiTextureType_NORMALS, 0, &aiTexPath) == AI_SUCCESS)
+				{
+					// TODO: Temp - this should be handled by Hazel's filesystem
+					std::filesystem::path path = filename;
+					auto parentPath = path.parent_path();
+					parentPath /= std::string(aiTexPath.data);
+					std::string texturePath = parentPath.string();
+
+					auto texture = Texture2D::Create(texturePath);
+					if (texture->Loaded())
+					{
+						HZ_CORE_TRACE("  Normal map path = {0}", texturePath);
+						mi->Set("u_NormalTexture", texture);
+						mi->Set("u_NormalTexToggle", 1.0f);
+					}
+					else
+					{
+						HZ_CORE_ERROR("Could not load texture: {0}", texturePath);
+					}
+				}
+				else
+				{
+					HZ_CORE_TRACE("Mesh has no normal map");
+				}
+
+				// Roughness map
+				// mi->Set("u_Roughness", 1.0f);
+				// mi->Set("u_RoughnessTexToggle", 0.0f);
+				if (aiMaterial->GetTexture(aiTextureType_SHININESS, 0, &aiTexPath) == AI_SUCCESS)
+				{
+					// TODO: Temp - this should be handled by Hazel's filesystem
+					std::filesystem::path path = filename;
+					auto parentPath = path.parent_path();
+					parentPath /= std::string(aiTexPath.data);
+					std::string texturePath = parentPath.string();
+
+					auto texture = Texture2D::Create(texturePath);
+					if (texture->Loaded())
+					{
+						HZ_CORE_TRACE("  Roughness map path = {0}", texturePath);
+						mi->Set("u_RoughnessTexture", texture);
+						mi->Set("u_RoughnessTexToggle", 1.0f);
+					}
+					else
+					{
+						HZ_CORE_ERROR("Could not load texture: {0}", texturePath);
+					}
+				}
+				else
+				{
+					HZ_CORE_TRACE("Mesh has no roughness texture");
+				}
+
+				// Metalness map
+				// mi->Set("u_Metalness", 0.0f);
+				// mi->Set("u_MetalnessTexToggle", 0.0f);
+				if (aiMaterial->Get("$raw.ReflectionFactor|file", aiPTI_String, 0, aiTexPath) == AI_SUCCESS)
+				{
+					// TODO: Temp - this should be handled by Hazel's filesystem
+					std::filesystem::path path = filename;
+					auto parentPath = path.parent_path();
+					parentPath /= std::string(aiTexPath.data);
+					std::string texturePath = parentPath.string();
+
+					auto texture = Texture2D::Create(texturePath);
+					if (texture->Loaded())
+					{
+						HZ_CORE_TRACE("  Metalness map path = {0}", texturePath);
+						mi->Set("u_MetalnessTexture", texture);
+						mi->Set("u_MetalnessTexToggle", 1.0f);
+					}
+					else
+					{
+						HZ_CORE_ERROR("Could not load texture: {0}", texturePath);
+					}
+				}
+				else
+				{
+					HZ_CORE_TRACE("Mesh has no metalness texture");
+				}
+
+				continue;
+
+				for (uint32_t i = 0; i < aiMaterial->mNumProperties; i++)
+				{
+					auto prop = aiMaterial->mProperties[i];
+					HZ_CORE_TRACE("Material Property:");
+					HZ_CORE_TRACE("  Name = {0}", prop->mKey.data);
+
+					switch (prop->mSemantic)
+					{
+					case aiTextureType_NONE:
+						HZ_CORE_TRACE("  Semantic = aiTextureType_NONE");
+						break;
+					case aiTextureType_DIFFUSE:
+						HZ_CORE_TRACE("  Semantic = aiTextureType_DIFFUSE");
+						break;
+					case aiTextureType_SPECULAR:
+						HZ_CORE_TRACE("  Semantic = aiTextureType_SPECULAR");
+						break;
+					case aiTextureType_AMBIENT:
+						HZ_CORE_TRACE("  Semantic = aiTextureType_AMBIENT");
+						break;
+					case aiTextureType_EMISSIVE:
+						HZ_CORE_TRACE("  Semantic = aiTextureType_EMISSIVE");
+						break;
+					case aiTextureType_HEIGHT:
+						HZ_CORE_TRACE("  Semantic = aiTextureType_HEIGHT");
+						break;
+					case aiTextureType_NORMALS:
+						HZ_CORE_TRACE("  Semantic = aiTextureType_NORMALS");
+						break;
+					case aiTextureType_SHININESS:
+						HZ_CORE_TRACE("  Semantic = aiTextureType_SHININESS");
+						break;
+					case aiTextureType_OPACITY:
+						HZ_CORE_TRACE("  Semantic = aiTextureType_OPACITY");
+						break;
+					case aiTextureType_DISPLACEMENT:
+						HZ_CORE_TRACE("  Semantic = aiTextureType_DISPLACEMENT");
+						break;
+					case aiTextureType_LIGHTMAP:
+						HZ_CORE_TRACE("  Semantic = aiTextureType_LIGHTMAP");
+						break;
+					case aiTextureType_REFLECTION:
+						HZ_CORE_TRACE("  Semantic = aiTextureType_REFLECTION");
+						break;
+					case aiTextureType_UNKNOWN:
+						HZ_CORE_TRACE("  Semantic = aiTextureType_UNKNOWN");
+						break;
+					}
+
+					if (prop->mType == aiPTI_String)
+					{
+						uint32_t strLength = *(uint32_t*)prop->mData;
+						std::string str(prop->mData + 4, strLength);
+						HZ_CORE_TRACE("  Value = {0}", str);
+
+						std::string key = prop->mKey.data;
+						if (key == "$raw.ReflectionFactor|file")
+						{
+							// TODO: Temp - this should be handled by Hazel's filesystem
+							std::filesystem::path path = filename;
+							auto parentPath = path.parent_path();
+							parentPath /= str;
+							std::string texturePath = parentPath.string();
+
+							auto texture = Texture2D::Create(texturePath);
+							if (texture->Loaded())
+							{
+								HZ_CORE_TRACE("  Metalness map path = {0}", texturePath);
+								mi->Set("u_MetalnessTexture", texture);
+								mi->Set("u_MetalnessTexToggle", 1.0f);
+							}
+							else
+							{
+								HZ_CORE_ERROR("Could not load texture: {0}", texturePath);
+								mi->Set("u_Metalness", 0.5f);
+								mi->Set("u_MetalnessTexToggle", 1.0f);
+							}
+						}
 					}
 				}
 			}
@@ -252,16 +486,27 @@ namespace Hazel {
 		}
 	}
 
-	void Mesh::TraverseNodes(aiNode* node)
+	static std::string LevelToSpaces(uint32_t level)
 	{
+		std::string result = "";
+		for (uint32_t i = 0; i < level; i++)
+			result += "--";
+		return result;
+	}
+
+	void Mesh::TraverseNodes(aiNode* node, const glm::mat4& parentTransform, uint32_t level)
+	{
+		glm::mat4 transform = parentTransform * Mat4FromAssimpMat4(node->mTransformation);
 		for (uint32_t i = 0; i < node->mNumMeshes; i++)
 		{
 			uint32_t mesh = node->mMeshes[i];
-			m_Submeshes[mesh].Transform = aiMatrix4x4ToGlm(node->mTransformation);
+			m_Submeshes[mesh].Transform = transform;
 		}
 
+		// HZ_CORE_TRACE("{0} {1}", LevelToSpaces(level), node->mName.C_Str());
+
 		for (uint32_t i = 0; i < node->mNumChildren; i++)
-			TraverseNodes(node->mChildren[i]);
+			TraverseNodes(node->mChildren[i], transform, level + 1);
 	}
 
 	// 查找动画时间对应的位置关键帧索引
@@ -381,11 +626,11 @@ namespace Hazel {
 	}
 
 	// 递归读取节点层级，计算骨骼变换
-	void Mesh::ReadNodeHierarchy(float AnimationTime, const aiNode* pNode, const glm::mat4& ParentTransform)
+	void Mesh::ReadNodeHierarchy(float AnimationTime, const aiNode* pNode, const glm::mat4& parentTransform)
 	{
 		std::string name(pNode->mName.data);
 		const aiAnimation* animation = m_Scene->mAnimations[0];
-		glm::mat4 nodeTransform(aiMatrix4x4ToGlm(pNode->mTransformation));
+		glm::mat4 nodeTransform(Mat4FromAssimpMat4(pNode->mTransformation));
 		const aiNodeAnim* nodeAnim = FindNodeAnim(animation, name);
 
 		if (nodeAnim)
@@ -402,7 +647,7 @@ namespace Hazel {
 			nodeTransform = translationMatrix * rotationMatrix * scaleMatrix;
 		}
 
-		glm::mat4 transform = ParentTransform * nodeTransform;
+		glm::mat4 transform = parentTransform * nodeTransform;
 
 		// 如果当前节点是骨骼，更新最终变换
 		if (m_BoneMapping.find(name) != m_BoneMapping.end())
@@ -435,28 +680,6 @@ namespace Hazel {
 		m_BoneTransforms.resize(m_BoneCount);
 		for (size_t i = 0; i < m_BoneCount; i++)
 			m_BoneTransforms[i] = m_BoneInfo[i].FinalTransformation;
-	}
-
-	// ImGui 调试界面
-	void Mesh::OnImGuiRender()
-	{
-		ImGui::Begin("Mesh Debug");
-		if (ImGui::CollapsingHeader(m_FilePath.c_str()))
-		{
-			if (m_IsAnimated)
-			{
-				if (ImGui::CollapsingHeader("Animation"))
-				{
-					if (ImGui::Button(m_AnimationPlaying ? "Pause" : "Play"))
-						m_AnimationPlaying = !m_AnimationPlaying;
-
-					ImGui::SliderFloat("##AnimationTime", &m_AnimationTime, 0.0f, (float)m_Scene->mAnimations[0]->mDuration);
-					ImGui::DragFloat("Time Scale", &m_TimeMultiplier, 0.05f, 0.0f, 10.0f);
-				}
-			}
-		}
-
-		ImGui::End();
 	}
 
 	// 输出顶点缓冲区内容到日志
