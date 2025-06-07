@@ -27,7 +27,7 @@ namespace Hazel {
 
 		static void Init();
 
-		static const Scope<ShaderLibrary>& GetShaderLibrary();
+		static const Scope<ShaderLibrary>& GetShaderLibrary() { return Get().m_ShaderLibrary; }
 
 		// 提交渲染命令到命令队列
 		template<typename FuncT>
@@ -42,7 +42,7 @@ namespace Hazel {
 				// static_assert(std::is_trivially_destructible_v<FuncT>, "FuncT must be trivially destructible");
 				pFunc->~FuncT();
 			};
-			auto storageBuffer = GetRenderCommandQueue().Allocate(renderCmd, sizeof(func));
+			auto storageBuffer = s_Instance->m_CommandQueue.Allocate(renderCmd, sizeof(func));
 			new (storageBuffer) FuncT(std::forward<FuncT>(func));
 		}
 
@@ -52,17 +52,29 @@ namespace Hazel {
 		}*/
 
 		// 等待并执行渲染命令队列
-		static void WaitAndRender();
+		void WaitAndRender();
+
+		// 获取渲染器单例实例
+		inline static Renderer& Get() { return *s_Instance; }
 
 		// ~Actual~ Renderer here... TODO: remove confusion later
-		static void BeginRenderPass(const Ref<RenderPass>& renderPass);
-		static void EndRenderPass();
+		static void BeginRenderPass(const Ref<RenderPass>& renderPass) { s_Instance->IBeginRenderPass(renderPass); }
+		static void EndRenderPass() { s_Instance->IEndRenderPass(); }
 
-		static void SubmitQuad(const Ref<MaterialInstance>& material, const glm::mat4& transform = glm::mat4(1.0f));
-		static void SubmitFullscreenQuad(const Ref<MaterialInstance>& material);
-		static void SubmitMesh(const Ref<Mesh>& mesh, const glm::mat4& transform, const Ref<MaterialInstance>& overrideMaterial = nullptr);
+		static void SubmitMesh(const Ref<Mesh>& mesh, const glm::mat4& transform, const Ref<MaterialInstance>& overrideMaterial = nullptr) { s_Instance->SubmitMeshI(mesh, transform, overrideMaterial); }
 	private:
-		static RenderCommandQueue& GetRenderCommandQueue();
+		void IBeginRenderPass(const Ref<RenderPass>& renderPass);
+		void IEndRenderPass();
+
+		void SubmitMeshI(const Ref<Mesh>& mesh, const glm::mat4& transform, const Ref<MaterialInstance>& overrideMaterial);
+
+	private:
+		static Renderer* s_Instance;
+	private:
+		Ref<RenderPass> m_ActiveRenderPass;
+
+		RenderCommandQueue m_CommandQueue;     // 渲染命令队列
+		Scope<ShaderLibrary> m_ShaderLibrary;
 	};
 
 }

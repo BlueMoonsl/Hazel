@@ -9,13 +9,6 @@
 
 namespace Hazel {
 
-	enum class MaterialFlag
-	{
-		None = BIT(0),
-		DepthTest = BIT(1),
-		Blend = BIT(2)
-	};
-
 	// 材质基类
 	class Material
 	{
@@ -25,9 +18,6 @@ namespace Hazel {
 		virtual ~Material();
 
 		void Bind() const;
-
-		uint32_t GetFlags() const { return m_MaterialFlags; }
-		void SetFlag(MaterialFlag flag) { m_MaterialFlags |= (uint32_t)flag; }
 
 		// 设置通用类型的 Uniform 变量
 		template <typename T>
@@ -83,7 +73,7 @@ namespace Hazel {
 		Buffer m_PSUniformStorageBuffer; // 像素着色器 Uniform 缓冲区
 		std::vector<Ref<Texture>> m_Textures; // 材质绑定的纹理
 
-		uint32_t m_MaterialFlags;
+		int32_t m_RenderFlags = 0; // 渲染标志
 	};
 
 	// 材质实例类，允许对单个实例进行参数覆盖
@@ -114,8 +104,6 @@ namespace Hazel {
 		void Set(const std::string& name, const Ref<Texture>& texture)
 		{
 			auto decl = m_Material->FindResourceDeclaration(name);
-			if (!decl)
-				HZ_CORE_WARN("Cannot find material property: ", name);
 			uint32_t slot = decl->GetRegister();
 			if (m_Textures.size() <= slot)
 				m_Textures.resize((size_t)slot + 1);
@@ -136,12 +124,6 @@ namespace Hazel {
 
 		// 绑定材质实例
 		void Bind() const;
-
-		uint32_t GetFlags() const { return m_Material->m_MaterialFlags; }
-		bool GetFlag(MaterialFlag flag) const { return (uint32_t)flag & m_Material->m_MaterialFlags; }
-		void SetFlag(MaterialFlag flag, bool value = true);
-
-		Ref<Shader >GetShader() { return m_Material->m_Shader; }
 	public:
 		static Ref<MaterialInstance> Create(const Ref<Material>& material);
 	private:

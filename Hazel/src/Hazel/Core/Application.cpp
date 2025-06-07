@@ -29,7 +29,7 @@ namespace Hazel {
 		PushOverlay(m_ImGuiLayer);
 
 		Renderer::Init();
-		Renderer::WaitAndRender();
+		Renderer::Get().WaitAndRender();
 	}
 
 	Application::~Application()
@@ -81,7 +81,7 @@ namespace Hazel {
 				Application* app = this;
 				Renderer::Submit([app]() { app->RenderImGui(); });
 
-				Renderer::WaitAndRender();
+				Renderer::Get().WaitAndRender();
 			}
 			m_Window->OnUpdate();
 

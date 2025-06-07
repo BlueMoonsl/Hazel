@@ -59,7 +59,6 @@ namespace Hazel {
 		// 创建 GLFW 窗口
 		m_Window = glfwCreateWindow((int)props.Width, (int)props.Height, m_Data.Title.c_str(), nullptr, nullptr);
 		glfwMakeContextCurrent(m_Window);
-		glfwMaximizeWindow(m_Window);
 		// 初始化 OpenGL 函数指针
 		int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 		HZ_CORE_ASSERT(status, "Failed to initialize Glad!");

@@ -1,4 +1,4 @@
-﻿// The MIT License(MIT)
+// The MIT License(MIT)
 //
 // Copyright(c) 2016 Cedric Guillemet
 //
@@ -32,9 +32,6 @@
 #endif
 #include "imgui_internal.h"
 #include "ImGuizmo.h"
-
-#include "Hazel/Core/Input.h"
-#include "Hazel/Core/KeyCodes.h"
 
 // includes patches for multiview from
 // https://github.com/CedricGuillemet/ImGuizmo/issues/15
@@ -678,7 +675,7 @@ namespace ImGuizmo
     static const float planeLimit = 0.2f;
 
     static const vec_t directionUnary[3] = { makeVect(1.f, 0.f, 0.f), makeVect(0.f, 1.f, 0.f), makeVect(0.f, 0.f, 1.f) };
-    static const ImU32 directionColor[3] = { 0xFF4444AA, 0xFF44AA44, 0xFFAA4444 };
+    static const ImU32 directionColor[3] = { 0xFF0000AA, 0xFF00AA00, 0xFFAA0000 };
 
     // Alpha: 100%: FF, 87%: DE, 70%: B3, 54%: 8A, 50%: 80, 38%: 61, 12%: 1F
     static const ImU32 planeColor[3] = { 0x610000AA, 0x6100AA00, 0x61AA0000 };
@@ -1261,10 +1258,6 @@ namespace ImGuizmo
 
     static bool CanActivate()
     {
-        // Check for modifiers
-        if (Hazel::Input::IsKeyPressed(HZ_KEY_LEFT_ALT) || Hazel::Input::IsKeyPressed(HZ_KEY_LEFT_SHIFT) || Hazel::Input::IsKeyPressed(HZ_KEY_LEFT_CONTROL))
-            return false;
-
         if (ImGui::IsMouseClicked(0) && !ImGui::IsAnyItemHovered() && !ImGui::IsAnyItemActive())
             return true;
         return false;
