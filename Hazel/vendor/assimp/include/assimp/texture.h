@@ -3,7 +3,9 @@
 Open Asset Import Library (assimp)
 ---------------------------------------------------------------------------
 
-Copyright (c) 2006-2025, assimp team
+Copyright (c) 2006-2019, assimp team
+
+
 
 All rights reserved.
 
@@ -51,15 +53,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef AI_TEXTURE_H_INC
 #define AI_TEXTURE_H_INC
 
-#ifdef __GNUC__
-#   pragma GCC system_header
-#endif
-
-#include <assimp/types.h>
+#include "types.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 
 // --------------------------------------------------------------------------------
 
@@ -80,6 +79,7 @@ extern "C" {
 #   define AI_MAKE_EMBEDDED_TEXNAME(_n_) AI_EMBEDDED_TEXNAME_PREFIX # _n_
 #endif
 
+
 #include "./Compiler/pushpack1.h"
 
 // --------------------------------------------------------------------------------
@@ -87,24 +87,28 @@ extern "C" {
 *
 *  Used by aiTexture.
 */
-struct aiTexel {
+struct aiTexel
+{
     unsigned char b,g,r,a;
 
 #ifdef __cplusplus
     //! Comparison operator
-    bool operator== (const aiTexel& other) const {
+    bool operator== (const aiTexel& other) const
+    {
         return b == other.b && r == other.r &&
                g == other.g && a == other.a;
     }
 
     //! Inverse comparison operator
-    bool operator!= (const aiTexel& other) const {
+    bool operator!= (const aiTexel& other) const
+    {
         return b != other.b || r != other.r ||
                g != other.g || a != other.a;
     }
 
     //! Conversion to a floating-point 4d color
-    operator aiColor4D() const {
+    operator aiColor4D() const
+    {
         return aiColor4D(r/255.f,g/255.f,b/255.f,a/255.f);
     }
 #endif // __cplusplus
@@ -169,8 +173,7 @@ struct aiTexture {
     /** Data of the texture.
      *
      * Points to an array of mWidth * mHeight aiTexel's.
-     * The format of the texture data shall always be ARGB8888 if the texture-hint of the type is empty.
-     * If the hint is not empty you can interpret the format by looking into this hint.
+     * The format of the texture data is always ARGB8888 to
      * make the implementation for user of the library as easy
      * as possible. If mHeight = 0 this is a pointer to a memory
      * buffer of size mWidth containing the compressed texture
@@ -200,12 +203,13 @@ struct aiTexture {
     }
 
     // Construction
-    aiTexture() AI_NO_EXCEPT :
-            mWidth(0),
-            mHeight(0),
-            pcData(nullptr),
-            mFilename() {
-        memset(achFormatHint, 0, sizeof(achFormatHint));
+    aiTexture() AI_NO_EXCEPT
+    : mWidth(0)
+    , mHeight(0)
+    , pcData(nullptr)
+    , mFilename() {
+        achFormatHint[0] = achFormatHint[1] = 0;
+        achFormatHint[2] = achFormatHint[3] = 0;
     }
 
     // Destruction

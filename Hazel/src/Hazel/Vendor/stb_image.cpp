@@ -1,4 +1,4 @@
-﻿#include "hzpch.h"
+#include "hzpch.h"
 //#pragma optimize("gt", on )
 
 #define STB_IMAGE_IMPLEMENTATION

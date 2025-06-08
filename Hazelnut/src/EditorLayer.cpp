@@ -1,8 +1,9 @@
-﻿#include "EditorLayer.h"
+#include "EditorLayer.h"
 
 #include "Hazel/ImGui/ImGuizmo.h"
 #include "Hazel/Renderer/Renderer2D.h"
 #include "Hazel/Script/ScriptEngine.h"
+#include "Hazel/Editor/PhysicsSettingsWindow.h"
 
 #include <filesystem>
 
@@ -10,6 +11,8 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+#include "Hazel/Physics/Physics.h"
 
 namespace Hazel {
 
@@ -26,18 +29,78 @@ namespace Hazel {
 		}
 	}
 
-	static std::tuple<glm::vec3, glm::quat, glm::vec3> GetTransformDecomposition(const glm::mat4& transform)
+	static bool GetTransformDecomposition(const glm::mat4& transform, glm::vec3& translation, glm::vec3& rotation, glm::vec3& scale)
 	{
-		glm::vec3 scale, translation, skew;
-		glm::vec4 perspective;
-		glm::quat orientation;
-		glm::decompose(transform, scale, orientation, translation, skew, perspective);
+		using namespace glm;
+		using T = float;
 
-		return { translation, orientation, scale };
+		mat4 LocalMatrix(transform);
+
+		// Normalize the matrix.
+		if (epsilonEqual(LocalMatrix[3][3], static_cast<float>(0), epsilon<T>()))
+			return false;
+
+		// First, isolate perspective.  This is the messiest.
+		if (
+			epsilonNotEqual(LocalMatrix[0][3], static_cast<T>(0), epsilon<T>()) ||
+			epsilonNotEqual(LocalMatrix[1][3], static_cast<T>(0), epsilon<T>()) ||
+			epsilonNotEqual(LocalMatrix[2][3], static_cast<T>(0), epsilon<T>()))
+		{
+			// Clear the perspective partition
+			LocalMatrix[0][3] = LocalMatrix[1][3] = LocalMatrix[2][3] = static_cast<T>(0);
+			LocalMatrix[3][3] = static_cast<T>(1);
+		}
+
+		// Next take care of translation (easy).
+		translation = vec3(LocalMatrix[3]);
+		LocalMatrix[3] = vec4(0, 0, 0, LocalMatrix[3].w);
+
+		vec3 Row[3], Pdum3;
+
+		// Now get scale and shear.
+		for (length_t i = 0; i < 3; ++i)
+			for (length_t j = 0; j < 3; ++j)
+				Row[i][j] = LocalMatrix[i][j];
+
+		// Compute X scale factor and normalize first row.
+		scale.x = length(Row[0]);
+		Row[0] = detail::scale(Row[0], static_cast<T>(1));
+		scale.y = length(Row[1]);
+		Row[1] = detail::scale(Row[1], static_cast<T>(1));
+		scale.z = length(Row[2]);
+		Row[2] = detail::scale(Row[2], static_cast<T>(1));
+
+		// At this point, the matrix (in rows[]) is orthonormal.
+		// Check for a coordinate system flip.  If the determinant
+		// is -1, then negate the matrix and the scaling factors.
+#if 0
+		Pdum3 = cross(Row[1], Row[2]); // v3Cross(row[1], row[2], Pdum3);
+		if (dot(Row[0], Pdum3) < 0)
+		{
+			for (length_t i = 0; i < 3; i++)
+			{
+				scale[i] *= static_cast<T>(-1);
+				Row[i] *= static_cast<T>(-1);
+			}
+		}
+#endif
+
+		rotation.y = asin(-Row[0][2]);
+		if (cos(rotation.y) != 0) {
+			rotation.x = atan2(Row[1][2], Row[2][2]);
+			rotation.z = atan2(Row[0][1], Row[0][0]);
+		}
+		else {
+			rotation.x = atan2(-Row[2][0], Row[1][1]);
+			rotation.z = 0;
+		}
+
+
+		return true;
 	}
 
 	EditorLayer::EditorLayer()
-		: m_SceneType(SceneType::Model), m_EditorCamera(glm::perspectiveFov(glm::radians(45.0f), 1280.0f, 720.0f, 0.1f, 10000.0f))
+		: m_SceneType(SceneType::Model), m_EditorCamera(glm::perspectiveFov(glm::radians(45.0f), 1280.0f, 720.0f, 0.1f, 1000.0f))
 	{
 	}
 
@@ -47,66 +110,17 @@ namespace Hazel {
 
 	void EditorLayer::OnAttach()
 	{
-		// ImGui Colors
-		ImVec4* colors = ImGui::GetStyle().Colors;
-		colors[ImGuiCol_Text] = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
-		colors[ImGuiCol_TextDisabled] = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
-		colors[ImGuiCol_WindowBg] = ImVec4(0.18f, 0.18f, 0.18f, 1.0f); // Window background
-		colors[ImGuiCol_ChildBg] = ImVec4(1.0f, 1.0f, 1.0f, 0.0f);
-		colors[ImGuiCol_PopupBg] = ImVec4(0.08f, 0.08f, 0.08f, 0.94f);
-		colors[ImGuiCol_Border] = ImVec4(0.43f, 0.43f, 0.50f, 0.5f);
-		colors[ImGuiCol_BorderShadow] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
-		colors[ImGuiCol_FrameBg] = ImVec4(0.3f, 0.3f, 0.3f, 0.5f); // Widget backgrounds
-		colors[ImGuiCol_FrameBgHovered] = ImVec4(0.4f, 0.4f, 0.4f, 0.4f);
-		colors[ImGuiCol_FrameBgActive] = ImVec4(0.4f, 0.4f, 0.4f, 0.6f);
-		colors[ImGuiCol_TitleBg] = ImVec4(0.04f, 0.04f, 0.04f, 1.0f);
-		colors[ImGuiCol_TitleBgActive] = ImVec4(0.29f, 0.29f, 0.29f, 1.0f);
-		colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.0f, 0.0f, 0.0f, 0.51f);
-		colors[ImGuiCol_MenuBarBg] = ImVec4(0.14f, 0.14f, 0.14f, 1.0f);
-		colors[ImGuiCol_ScrollbarBg] = ImVec4(0.02f, 0.02f, 0.02f, 0.53f);
-		colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.31f, 0.31f, 0.31f, 1.0f);
-		colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.41f, 0.41f, 0.41f, 1.0f);
-		colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.51f, 0.51f, 0.51f, 1.0f);
-		colors[ImGuiCol_CheckMark] = ImVec4(0.94f, 0.94f, 0.94f, 1.0f);
-		colors[ImGuiCol_SliderGrab] = ImVec4(0.51f, 0.51f, 0.51f, 0.7f);
-		colors[ImGuiCol_SliderGrabActive] = ImVec4(0.66f, 0.66f, 0.66f, 1.0f);
-		colors[ImGuiCol_Button] = ImVec4(0.44f, 0.44f, 0.44f, 0.4f);
-		colors[ImGuiCol_ButtonHovered] = ImVec4(0.46f, 0.47f, 0.48f, 1.0f);
-		colors[ImGuiCol_ButtonActive] = ImVec4(0.42f, 0.42f, 0.42f, 1.0f);
-		colors[ImGuiCol_Header] = ImVec4(0.7f, 0.7f, 0.7f, 0.31f);
-		colors[ImGuiCol_HeaderHovered] = ImVec4(0.7f, 0.7f, 0.7f, 0.8f);
-		colors[ImGuiCol_HeaderActive] = ImVec4(0.48f, 0.5f, 0.52f, 1.0f);
-		colors[ImGuiCol_Separator] = ImVec4(0.43f, 0.43f, 0.5f, 0.5f);
-		colors[ImGuiCol_SeparatorHovered] = ImVec4(0.72f, 0.72f, 0.72f, 0.78f);
-		colors[ImGuiCol_SeparatorActive] = ImVec4(0.51f, 0.51f, 0.51f, 1.0f);
-		colors[ImGuiCol_ResizeGrip] = ImVec4(0.91f, 0.91f, 0.91f, 0.25f);
-		colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.81f, 0.81f, 0.81f, 0.67f);
-		colors[ImGuiCol_ResizeGripActive] = ImVec4(0.46f, 0.46f, 0.46f, 0.95f);
-		colors[ImGuiCol_PlotLines] = ImVec4(0.61f, 0.61f, 0.61f, 1.0f);
-		colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.0f, 0.43f, 0.35f, 1.0f);
-		colors[ImGuiCol_PlotHistogram] = ImVec4(0.73f, 0.6f, 0.15f, 1.0f);
-		colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.0f, 0.6f, 0.0f, 1.0f);
-		colors[ImGuiCol_TextSelectedBg] = ImVec4(0.87f, 0.87f, 0.87f, 0.35f);
-		colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.8f, 0.8f, 0.8f, 0.35f);
-		colors[ImGuiCol_DragDropTarget] = ImVec4(1.0f, 1.0f, 0.0f, 0.9f);
-		colors[ImGuiCol_NavHighlight] = ImVec4(0.60f, 0.6f, 0.6f, 1.0f);
-		colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.0f, 1.0f, 1.0f, 0.7f);
-
 		using namespace glm;
-
 
 		// Editor
 		m_CheckerboardTex = Texture2D::Create("assets/editor/Checkerboard.tga");
 		m_PlayButtonTex = Texture2D::Create("assets/editor/PlayButton.png");
 
-		m_EditorScene = Ref<Scene>::Create();
-		UpdateWindowTitle("Untitled Scene");
-		ScriptEngine::SetSceneContext(m_EditorScene);
 		m_SceneHierarchyPanel = CreateScope<SceneHierarchyPanel>(m_EditorScene);
 		m_SceneHierarchyPanel->SetSelectionChangedCallback(std::bind(&EditorLayer::SelectEntity, this, std::placeholders::_1));
 		m_SceneHierarchyPanel->SetEntityDeletedCallback(std::bind(&EditorLayer::OnEntityDeleted, this, std::placeholders::_1));
-		// SceneSerializer serializer(m_ActiveScene);
-		// serializer.Deserialize("Scene.yaml");
+
+		OpenScene("assets/scenes/LightingTest.hsc");
 	}
 
 	void EditorLayer::OnDetach()
@@ -148,8 +162,23 @@ namespace Hazel {
 		Application::Get().GetWindow().SetTitle(title);
 	}
 
+	float EditorLayer::GetSnapValue()
+	{
+		switch (m_GizmoType)
+		{
+			case  ImGuizmo::OPERATION::TRANSLATE: return 0.5f;
+			case  ImGuizmo::OPERATION::ROTATE: return 45.0f;
+			case  ImGuizmo::OPERATION::SCALE: return 0.5f;
+		}
+		return 0.0f;
+	}
+
 	void EditorLayer::OnUpdate(Timestep ts)
 	{
+		auto [x, y] = GetMouseViewportSpace();
+
+		SceneRenderer::SetFocusPoint({ x * 0.5f + 0.5f, y * 0.5f + 0.5f });
+
 		switch (m_SceneState)
 		{
 			case SceneState::Edit:
@@ -179,7 +208,7 @@ namespace Hazel {
 						auto viewProj = m_EditorCamera.GetViewProjection();
 						Renderer2D::BeginScene(viewProj, false);
 						glm::vec4 color = (m_SelectionMode == SelectionMode::Entity) ? glm::vec4{ 1.0f, 1.0f, 1.0f, 1.0f } : glm::vec4{ 0.2f, 0.9f, 0.2f, 1.0f };
-						Renderer::DrawAABB(selection.Mesh->BoundingBox, selection.Entity.GetComponent<TransformComponent>().Transform * selection.Mesh->Transform, color);
+						Renderer::DrawAABB(selection.Mesh->BoundingBox, selection.Entity.Transform().GetTransform() * selection.Mesh->Transform, color);
 						Renderer2D::EndScene();
 						Renderer::EndRenderPass();
 					}
@@ -192,13 +221,12 @@ namespace Hazel {
 					if (selection.Entity.HasComponent<BoxCollider2DComponent>())
 					{
 						const auto& size = selection.Entity.GetComponent<BoxCollider2DComponent>().Size;
-						auto [translation, rotationQuat, scale] = GetTransformDecomposition(selection.Entity.GetComponent<TransformComponent>().Transform);
-						glm::vec3 rotation = glm::eulerAngles(rotationQuat);
+						const TransformComponent& transform = selection.Entity.GetComponent<TransformComponent>();
 
 						Renderer::BeginRenderPass(SceneRenderer::GetFinalRenderPass(), false);
 						auto viewProj = m_EditorCamera.GetViewProjection();
 						Renderer2D::BeginScene(viewProj, false);
-						Renderer2D::DrawRotatedQuad({ translation.x, translation.y }, size * 2.0f, glm::degrees(rotation.z), { 1.0f, 0.0f, 1.0f, 1.0f });
+						Renderer2D::DrawRotatedQuad({ transform.Translation.x, transform.Translation.y }, size * 2.0f, transform.Rotation.z, { 1.0f, 0.0f, 1.0f, 1.0f });
 						Renderer2D::EndScene();
 						Renderer::EndRenderPass();
 					}
@@ -347,13 +375,81 @@ namespace Hazel {
 		SelectedSubmesh selection;
 		if (entity.HasComponent<MeshComponent>())
 		{
-			selection.Mesh = &entity.GetComponent<MeshComponent>().Mesh->GetSubmeshes()[0];
+			auto& meshComp = entity.GetComponent<MeshComponent>();
+
+			if (meshComp.Mesh)
+			{
+				selection.Mesh = &meshComp.Mesh->GetSubmeshes()[0];
+			}
 		}
 		selection.Entity = entity;
 		m_SelectionContext.clear();
 		m_SelectionContext.push_back(selection);
 
 		m_EditorScene->SetSelectedEntity(entity);
+	}
+
+	void EditorLayer::NewScene()
+	{
+		m_EditorScene = Ref<Scene>::Create();
+		m_SceneHierarchyPanel->SetContext(m_EditorScene);
+		ScriptEngine::SetSceneContext(m_EditorScene);
+		UpdateWindowTitle("Untitled Scene");
+		m_SceneFilePath = std::string();
+
+		m_EditorCamera = EditorCamera(glm::perspectiveFov(glm::radians(45.0f), 1280.0f, 720.0f, 0.1f, 1000.0f));
+	}
+
+	void EditorLayer::OpenScene()
+	{
+		auto& app = Application::Get();
+		std::string filepath = app.OpenFile("Hazel Scene (*.hsc)\0*.hsc\0");
+		if (!filepath.empty())
+			OpenScene(filepath);
+	}
+
+	void EditorLayer::OpenScene(const std::string& filepath)
+	{
+		Ref<Scene> newScene = Ref<Scene>::Create("New Scene", true);
+		SceneSerializer serializer(newScene);
+		serializer.Deserialize(filepath);
+		m_EditorScene = newScene;
+
+		std::filesystem::path path = filepath;
+		UpdateWindowTitle(path.filename().string());
+		m_SceneHierarchyPanel->SetContext(m_EditorScene);
+		ScriptEngine::SetSceneContext(m_EditorScene);
+
+		m_EditorScene->SetSelectedEntity({});
+		m_SelectionContext.clear();
+	}
+
+	void EditorLayer::SaveScene()
+	{
+		if (!m_SceneFilePath.empty())
+		{
+			SceneSerializer serializer(m_EditorScene);
+			serializer.Serialize(m_SceneFilePath);
+		}
+		else
+		{
+			SaveSceneAs();
+		}
+	}
+
+	void EditorLayer::SaveSceneAs()
+	{
+		auto& app = Application::Get();
+		std::string filepath = app.SaveFile("Hazel Scene (*.hsc)\0*.hsc\0");
+		if (!filepath.empty())
+		{
+			SceneSerializer serializer(m_EditorScene);
+			serializer.Serialize(filepath);
+
+			std::filesystem::path path = filepath;
+			UpdateWindowTitle(path.filename().string());
+			m_SceneFilePath = filepath;
+		}
 	}
 
 	void EditorLayer::OnImGuiRender()
@@ -392,22 +488,20 @@ namespace Hazel {
 
 		// Dockspace
 		ImGuiIO& io = ImGui::GetIO();
+		ImGuiStyle& style = ImGui::GetStyle();
+		float minWinSizeX = style.WindowMinSize.x;
+		style.WindowMinSize.x = 370.0f;
 		if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
 		{
 			ImGuiID dockspace_id = ImGui::GetID("MyDockspace");
 			ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), opt_flags);
 		}
 
+		style.WindowMinSize.x = minWinSizeX;
+
 		// Editor Panel ------------------------------------------------------------------------------
 		ImGui::Begin("Model");
 		ImGui::Begin("Environment");
-
-		if (ImGui::Button("Load Environment Map"))
-		{
-			std::string filename = Application::Get().OpenFile("*.hdr");
-			if (filename != "")
-				m_EditorScene->SetEnvironment(Environment::Load(filename));
-		}
 
 		ImGui::SliderFloat("Skybox LOD", &m_EditorScene->GetSkyboxLod(), 0.0f, 11.0f);
 
@@ -478,139 +572,6 @@ namespace Hazel {
 		}
 		ImGui::Separator();
 
-		// Textures ------------------------------------------------------------------------------
-		{
-			// Albedo
-			if (ImGui::CollapsingHeader("Albedo", nullptr, ImGuiTreeNodeFlags_DefaultOpen))
-			{
-				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
-				ImGui::Image(m_AlbedoInput.TextureMap ? (void*)m_AlbedoInput.TextureMap->GetRendererID() : (void*)m_CheckerboardTex->GetRendererID(), ImVec2(64, 64));
-				ImGui::PopStyleVar();
-				if (ImGui::IsItemHovered())
-				{
-					if (m_AlbedoInput.TextureMap)
-					{
-						ImGui::BeginTooltip();
-						ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-						ImGui::TextUnformatted(m_AlbedoInput.TextureMap->GetPath().c_str());
-						ImGui::PopTextWrapPos();
-						ImGui::Image((void*)m_AlbedoInput.TextureMap->GetRendererID(), ImVec2(384, 384));
-						ImGui::EndTooltip();
-					}
-					if (ImGui::IsItemClicked())
-					{
-						std::string filename = Application::Get().OpenFile("");
-						if (filename != "")
-							m_AlbedoInput.TextureMap = Texture2D::Create(filename, m_AlbedoInput.SRGB);
-					}
-				}
-				ImGui::SameLine();
-				ImGui::BeginGroup();
-				ImGui::Checkbox("Use##AlbedoMap", &m_AlbedoInput.UseTexture);
-				if (ImGui::Checkbox("sRGB##AlbedoMap", &m_AlbedoInput.SRGB))
-				{
-					if (m_AlbedoInput.TextureMap)
-						m_AlbedoInput.TextureMap = Texture2D::Create(m_AlbedoInput.TextureMap->GetPath(), m_AlbedoInput.SRGB);
-				}
-				ImGui::EndGroup();
-				ImGui::SameLine();
-				ImGui::ColorEdit3("Color##Albedo", glm::value_ptr(m_AlbedoInput.Color), ImGuiColorEditFlags_NoInputs);
-			}
-		}
-		{
-			// Normals
-			if (ImGui::CollapsingHeader("Normals", nullptr, ImGuiTreeNodeFlags_DefaultOpen))
-			{
-				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
-				ImGui::Image(m_NormalInput.TextureMap ? (void*)m_NormalInput.TextureMap->GetRendererID() : (void*)m_CheckerboardTex->GetRendererID(), ImVec2(64, 64));
-				ImGui::PopStyleVar();
-				if (ImGui::IsItemHovered())
-				{
-					if (m_NormalInput.TextureMap)
-					{
-						ImGui::BeginTooltip();
-						ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-						ImGui::TextUnformatted(m_NormalInput.TextureMap->GetPath().c_str());
-						ImGui::PopTextWrapPos();
-						ImGui::Image((void*)m_NormalInput.TextureMap->GetRendererID(), ImVec2(384, 384));
-						ImGui::EndTooltip();
-					}
-					if (ImGui::IsItemClicked())
-					{
-						std::string filename = Application::Get().OpenFile("");
-						if (filename != "")
-							m_NormalInput.TextureMap = Texture2D::Create(filename);
-					}
-				}
-				ImGui::SameLine();
-				ImGui::Checkbox("Use##NormalMap", &m_NormalInput.UseTexture);
-			}
-		}
-		{
-			// Metalness
-			if (ImGui::CollapsingHeader("Metalness", nullptr, ImGuiTreeNodeFlags_DefaultOpen))
-			{
-				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
-				ImGui::Image(m_MetalnessInput.TextureMap ? (void*)m_MetalnessInput.TextureMap->GetRendererID() : (void*)m_CheckerboardTex->GetRendererID(), ImVec2(64, 64));
-				ImGui::PopStyleVar();
-				if (ImGui::IsItemHovered())
-				{
-					if (m_MetalnessInput.TextureMap)
-					{
-						ImGui::BeginTooltip();
-						ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-						ImGui::TextUnformatted(m_MetalnessInput.TextureMap->GetPath().c_str());
-						ImGui::PopTextWrapPos();
-						ImGui::Image((void*)m_MetalnessInput.TextureMap->GetRendererID(), ImVec2(384, 384));
-						ImGui::EndTooltip();
-					}
-					if (ImGui::IsItemClicked())
-					{
-						std::string filename = Application::Get().OpenFile("");
-						if (filename != "")
-							m_MetalnessInput.TextureMap = Texture2D::Create(filename);
-					}
-				}
-				ImGui::SameLine();
-				ImGui::Checkbox("Use##MetalnessMap", &m_MetalnessInput.UseTexture);
-				ImGui::SameLine();
-				ImGui::SliderFloat("Value##MetalnessInput", &m_MetalnessInput.Value, 0.0f, 1.0f);
-			}
-		}
-		{
-			// Roughness
-			if (ImGui::CollapsingHeader("Roughness", nullptr, ImGuiTreeNodeFlags_DefaultOpen))
-			{
-				ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
-				ImGui::Image(m_RoughnessInput.TextureMap ? (void*)m_RoughnessInput.TextureMap->GetRendererID() : (void*)m_CheckerboardTex->GetRendererID(), ImVec2(64, 64));
-				ImGui::PopStyleVar();
-				if (ImGui::IsItemHovered())
-				{
-					if (m_RoughnessInput.TextureMap)
-					{
-						ImGui::BeginTooltip();
-						ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-						ImGui::TextUnformatted(m_RoughnessInput.TextureMap->GetPath().c_str());
-						ImGui::PopTextWrapPos();
-						ImGui::Image((void*)m_RoughnessInput.TextureMap->GetRendererID(), ImVec2(384, 384));
-						ImGui::EndTooltip();
-					}
-					if (ImGui::IsItemClicked())
-					{
-						std::string filename = Application::Get().OpenFile("");
-						if (filename != "")
-							m_RoughnessInput.TextureMap = Texture2D::Create(filename);
-					}
-				}
-				ImGui::SameLine();
-				ImGui::Checkbox("Use##RoughnessMap", &m_RoughnessInput.UseTexture);
-				ImGui::SameLine();
-				ImGui::SliderFloat("Value##RoughnessInput", &m_RoughnessInput.Value, 0.0f, 1.0f);
-			}
-		}
-
-		ImGui::Separator();
-
 		if (ImGui::TreeNode("Shaders"))
 		{
 			auto& shaders = Shader::s_AllShaders;
@@ -677,7 +638,7 @@ namespace Hazel {
 		m_EditorScene->SetViewportSize((uint32_t)viewportSize.x, (uint32_t)viewportSize.y);
 		if (m_RuntimeScene)
 			m_RuntimeScene->SetViewportSize((uint32_t)viewportSize.x, (uint32_t)viewportSize.y);
-		m_EditorCamera.SetProjectionMatrix(glm::perspectiveFov(glm::radians(45.0f), viewportSize.x, viewportSize.y, 0.1f, 10000.0f));
+		m_EditorCamera.SetProjectionMatrix(glm::perspectiveFov(glm::radians(45.0f), viewportSize.x, viewportSize.y, 0.1f, 1000.0f));
 		m_EditorCamera.SetViewportSize((uint32_t)viewportSize.x, (uint32_t)viewportSize.y);
 		ImGui::Image((void*)SceneRenderer::GetFinalColorBufferRendererID(), viewportSize, { 0, 1 }, { 1, 0 });
 
@@ -705,30 +666,44 @@ namespace Hazel {
 
 			bool snap = Input::IsKeyPressed(HZ_KEY_LEFT_CONTROL);
 
-			auto& entityTransform = selection.Entity.Transform();
-			float snapValue[3] = { m_SnapValue, m_SnapValue, m_SnapValue };
+			TransformComponent& entityTransform = selection.Entity.Transform();
+			glm::mat4 transform = entityTransform.GetTransform();
+			float snapValue = GetSnapValue();
+			float snapValues[3] = { snapValue, snapValue, snapValue };
+
 			if (m_SelectionMode == SelectionMode::Entity)
 			{
 				ImGuizmo::Manipulate(glm::value_ptr(m_EditorCamera.GetViewMatrix()),
 					glm::value_ptr(m_EditorCamera.GetProjectionMatrix()),
 					(ImGuizmo::OPERATION)m_GizmoType,
 					ImGuizmo::LOCAL,
-					glm::value_ptr(entityTransform),
+					glm::value_ptr(transform),
 					nullptr,
-					snap ? snapValue : nullptr);
+					snap ? snapValues : nullptr);
+
+				if (ImGuizmo::IsUsing())
+				{
+					glm::vec3 translation, rotation, scale;
+					GetTransformDecomposition(transform, translation, rotation, scale);
+
+					glm::vec3 deltaRotation = rotation - entityTransform.Rotation;
+					entityTransform.Translation = translation;
+					entityTransform.Rotation += deltaRotation;
+					entityTransform.Scale = scale;
+				}
 			}
 			else
 			{
-				glm::mat4 transformBase = entityTransform * selection.Mesh->Transform;
+				glm::mat4 transformBase = transform * selection.Mesh->Transform;
 				ImGuizmo::Manipulate(glm::value_ptr(m_EditorCamera.GetViewMatrix()),
 					glm::value_ptr(m_EditorCamera.GetProjectionMatrix()),
 					(ImGuizmo::OPERATION)m_GizmoType,
 					ImGuizmo::LOCAL,
 					glm::value_ptr(transformBase),
 					nullptr,
-					snap ? snapValue : nullptr);
+					snap ? snapValues : nullptr);
 
-				selection.Mesh->Transform = glm::inverse(entityTransform) * transformBase;
+				selection.Mesh->Transform = glm::inverse(transform) * transformBase;
 			}
 		}
 
@@ -739,40 +714,15 @@ namespace Hazel {
 		{
 			if (ImGui::BeginMenu("File"))
 			{
-				if (ImGui::MenuItem("New Scene"))
-				{
-
-				}
-				if (ImGui::MenuItem("Open Scene..."))
-				{
-					auto& app = Application::Get();
-					std::string filepath = app.OpenFile("Hazel Scene (*.hsc)\0*.hsc\0");
-					if (!filepath.empty())
-					{
-						Ref<Scene> newScene = Ref<Scene>::Create();
-						SceneSerializer serializer(newScene);
-						serializer.Deserialize(filepath);
-						m_EditorScene = newScene;
-						std::filesystem::path path = filepath;
-						UpdateWindowTitle(path.filename().string());
-						m_SceneHierarchyPanel->SetContext(m_EditorScene);
-						ScriptEngine::SetSceneContext(m_EditorScene);
-
-						m_EditorScene->SetSelectedEntity({});
-						m_SelectionContext.clear();
-					}
-				}
-				if (ImGui::MenuItem("Save Scene..."))
-				{
-					auto& app = Application::Get();
-					std::string filepath = app.SaveFile("Hazel Scene (*.hsc)\0*.hsc\0");
-					SceneSerializer serializer(m_EditorScene);
-					serializer.Serialize(filepath);
-
-					std::filesystem::path path = filepath;
-					UpdateWindowTitle(path.filename().string());
-				}
+				if (ImGui::MenuItem("New Scene", "Ctrl+N"))
+					NewScene();
+				if (ImGui::MenuItem("Open Scene...", "Ctrl+O"))
+					OpenScene();
 				ImGui::Separator();
+				if (ImGui::MenuItem("Save Scene", "Ctrl+S"))
+					SaveScene();
+				if (ImGui::MenuItem("Save Scene As...", "Ctrl+Shift+S"))
+					SaveSceneAs();
 			
 				ImGui::Separator();
 				if (ImGui::MenuItem("Exit"))
@@ -789,6 +739,13 @@ namespace Hazel {
 				ImGui::EndMenu();
 			}
 
+			if (ImGui::BeginMenu("Edit"))
+			{
+				ImGui::MenuItem("Physics Settings", nullptr, &m_ShowPhysicsSettings);
+
+				ImGui::EndMenu();
+			}
+		
 			ImGui::EndMenuBar();
 		}
 
@@ -823,9 +780,170 @@ namespace Hazel {
 
 					ImGui::Separator();
 
+					// Selected material
 					if (selectedMaterialIndex < materials.size())
 					{
-						ImGui::Text("Shader: %s", materials[selectedMaterialIndex]->GetShader()->GetName().c_str());
+						auto& materialInstance = materials[selectedMaterialIndex];
+						ImGui::Text("Shader: %s", materialInstance->GetShader()->GetName().c_str());
+						// Textures ------------------------------------------------------------------------------
+						{
+							// Albedo
+							if (ImGui::CollapsingHeader("Albedo", nullptr, ImGuiTreeNodeFlags_DefaultOpen))
+							{
+								ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
+
+								auto& albedoColor = materialInstance->Get<glm::vec3>("u_AlbedoColor");
+								bool useAlbedoMap = materialInstance->Get<float>("u_AlbedoTexToggle");
+								Ref<Texture2D> albedoMap = materialInstance->TryGetResource<Texture2D>("u_AlbedoTexture");
+								ImGui::Image(albedoMap ? (void*)albedoMap->GetRendererID() : (void*)m_CheckerboardTex->GetRendererID(), ImVec2(64, 64));
+								ImGui::PopStyleVar();
+								if (ImGui::IsItemHovered())
+								{
+									if (albedoMap)
+									{
+										ImGui::BeginTooltip();
+										ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+										ImGui::TextUnformatted(albedoMap->GetPath().c_str());
+										ImGui::PopTextWrapPos();
+										ImGui::Image((void*)albedoMap->GetRendererID(), ImVec2(384, 384));
+										ImGui::EndTooltip();
+									}
+									if (ImGui::IsItemClicked())
+									{
+										std::string filename = Application::Get().OpenFile("");
+										if (filename != "")
+										{
+											albedoMap = Texture2D::Create(filename, true/*m_AlbedoInput.SRGB*/);
+											materialInstance->Set("u_AlbedoTexture", albedoMap);
+										}
+									}
+								}
+								ImGui::SameLine();
+								ImGui::BeginGroup();
+								if (ImGui::Checkbox("Use##AlbedoMap", &useAlbedoMap))
+									materialInstance->Set<float>("u_AlbedoTexToggle", useAlbedoMap ? 1.0f : 0.0f);
+
+								/*if (ImGui::Checkbox("sRGB##AlbedoMap", &m_AlbedoInput.SRGB))
+								{
+									if (m_AlbedoInput.TextureMap)
+										m_AlbedoInput.TextureMap = Texture2D::Create(m_AlbedoInput.TextureMap->GetPath(), m_AlbedoInput.SRGB);
+								}*/
+								ImGui::EndGroup();
+								ImGui::SameLine();
+								ImGui::ColorEdit3("Color##Albedo", glm::value_ptr(albedoColor), ImGuiColorEditFlags_NoInputs);
+							}
+						}
+						{
+							// Normals
+							if (ImGui::CollapsingHeader("Normals", nullptr, ImGuiTreeNodeFlags_DefaultOpen))
+							{
+								ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
+								bool useNormalMap = materialInstance->Get<float>("u_NormalTexToggle");
+								Ref<Texture2D> normalMap = materialInstance->TryGetResource<Texture2D>("u_NormalTexture");
+								ImGui::Image(normalMap ? (void*)normalMap->GetRendererID() : (void*)m_CheckerboardTex->GetRendererID(), ImVec2(64, 64));
+								ImGui::PopStyleVar();
+								if (ImGui::IsItemHovered())
+								{
+									if (normalMap)
+									{
+										ImGui::BeginTooltip();
+										ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+										ImGui::TextUnformatted(normalMap->GetPath().c_str());
+										ImGui::PopTextWrapPos();
+										ImGui::Image((void*)normalMap->GetRendererID(), ImVec2(384, 384));
+										ImGui::EndTooltip();
+									}
+									if (ImGui::IsItemClicked())
+									{
+										std::string filename = Application::Get().OpenFile("");
+										if (filename != "")
+										{
+											normalMap = Texture2D::Create(filename);
+											materialInstance->Set("u_NormalTexture", normalMap);
+										}
+									}
+								}
+								ImGui::SameLine();
+								if (ImGui::Checkbox("Use##NormalMap", &useNormalMap))
+									materialInstance->Set<float>("u_NormalTexToggle", useNormalMap ? 1.0f : 0.0f);
+							}
+						}
+						{
+							// Metalness
+							if (ImGui::CollapsingHeader("Metalness", nullptr, ImGuiTreeNodeFlags_DefaultOpen))
+							{
+								ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
+								float& metalnessValue = materialInstance->Get<float>("u_Metalness");
+								bool useMetalnessMap = materialInstance->Get<float>("u_MetalnessTexToggle");
+								Ref<Texture2D> metalnessMap = materialInstance->TryGetResource<Texture2D>("u_MetalnessTexture");
+								ImGui::Image(metalnessMap ? (void*)metalnessMap->GetRendererID() : (void*)m_CheckerboardTex->GetRendererID(), ImVec2(64, 64));
+								ImGui::PopStyleVar();
+								if (ImGui::IsItemHovered())
+								{
+									if (metalnessMap)
+									{
+										ImGui::BeginTooltip();
+										ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+										ImGui::TextUnformatted(metalnessMap->GetPath().c_str());
+										ImGui::PopTextWrapPos();
+										ImGui::Image((void*)metalnessMap->GetRendererID(), ImVec2(384, 384));
+										ImGui::EndTooltip();
+									}
+									if (ImGui::IsItemClicked())
+									{
+										std::string filename = Application::Get().OpenFile("");
+										if (filename != "")
+										{
+											metalnessMap = Texture2D::Create(filename);
+											materialInstance->Set("u_MetalnessTexture", metalnessMap);
+										}
+									}
+								}
+								ImGui::SameLine();
+								if (ImGui::Checkbox("Use##MetalnessMap", &useMetalnessMap))
+									materialInstance->Set<float>("u_MetalnessTexToggle", useMetalnessMap ? 1.0f : 0.0f);
+								ImGui::SameLine();
+								ImGui::SliderFloat("Value##MetalnessInput", &metalnessValue, 0.0f, 1.0f);
+							}
+						}
+						{
+							// Roughness
+							if (ImGui::CollapsingHeader("Roughness", nullptr, ImGuiTreeNodeFlags_DefaultOpen))
+							{
+								ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10, 10));
+								float& roughnessValue = materialInstance->Get<float>("u_Roughness");
+								bool useRoughnessMap = materialInstance->Get<float>("u_RoughnessTexToggle");
+								Ref<Texture2D> roughnessMap = materialInstance->TryGetResource<Texture2D>("u_RoughnessTexture");
+								ImGui::Image(roughnessMap ? (void*)roughnessMap->GetRendererID() : (void*)m_CheckerboardTex->GetRendererID(), ImVec2(64, 64));
+								ImGui::PopStyleVar();
+								if (ImGui::IsItemHovered())
+								{
+									if (roughnessMap)
+									{
+										ImGui::BeginTooltip();
+										ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+										ImGui::TextUnformatted(roughnessMap->GetPath().c_str());
+										ImGui::PopTextWrapPos();
+										ImGui::Image((void*)roughnessMap->GetRendererID(), ImVec2(384, 384));
+										ImGui::EndTooltip();
+									}
+									if (ImGui::IsItemClicked())
+									{
+										std::string filename = Application::Get().OpenFile("");
+										if (filename != "")
+										{
+											roughnessMap = Texture2D::Create(filename);
+											materialInstance->Set("u_RoughnessTexture", roughnessMap);
+										}
+									}
+								}
+								ImGui::SameLine();
+								if (ImGui::Checkbox("Use##RoughnessMap", &useRoughnessMap))
+									materialInstance->Set<float>("u_RoughnessTexToggle", useRoughnessMap ? 1.0f : 0.0f);
+								ImGui::SameLine();
+								ImGui::SliderFloat("Value##RoughnessInput", &roughnessValue, 0.0f, 1.0f);
+							}
+						}
 					}
 				}
 			}
@@ -834,6 +952,8 @@ namespace Hazel {
 		ImGui::End();
 
 		ScriptEngine::OnImGuiRender();
+		SceneRenderer::OnImGuiRender();
+		PhysicsSettingsWindow::OnImGuiRender(m_ShowPhysicsSettings);
 
 		ImGui::End();
 	}
@@ -859,10 +979,12 @@ namespace Hazel {
 
 	bool EditorLayer::OnKeyPressedEvent(KeyPressedEvent& e)
 	{
-		if (m_ViewportPanelFocused)
+		if (GImGui->ActiveId == 0)
 		{
-			switch (e.GetKeyCode())
+			if (m_ViewportPanelMouseOver)
 			{
+				switch (e.GetKeyCode())
+				{
 				case KeyCode::Q:
 					m_GizmoType = -1;
 					break;
@@ -875,16 +997,21 @@ namespace Hazel {
 				case KeyCode::R:
 					m_GizmoType = ImGuizmo::OPERATION::SCALE;
 					break;
-				case KeyCode::Delete:
-					if (m_SelectionContext.size())
-					{
-						Entity selectedEntity = m_SelectionContext[0].Entity;
-						m_EditorScene->DestroyEntity(selectedEntity);
-						m_SelectionContext.clear();
-						m_EditorScene->SetSelectedEntity({});
-						m_SceneHierarchyPanel->SetSelected({});
-					}
-					break;
+				}
+
+			}
+			switch (e.GetKeyCode())
+			{
+			case KeyCode::Delete: // TODO: this should be in the scene hierarchy panel
+				if (m_SelectionContext.size())
+				{
+					Entity selectedEntity = m_SelectionContext[0].Entity;
+					m_EditorScene->DestroyEntity(selectedEntity);
+					m_SelectionContext.clear();
+					m_EditorScene->SetSelectedEntity({});
+					m_SceneHierarchyPanel->SetSelected({});
+				}
+				break;
 			}
 		}
 
@@ -892,10 +1019,6 @@ namespace Hazel {
 		{
 			switch (e.GetKeyCode())
 			{
-				case KeyCode::G:
-					// Toggle grid
-					SceneRenderer::GetOptions().ShowGrid = !SceneRenderer::GetOptions().ShowGrid;
-					break;
 				case KeyCode::B:
 					// Toggle bounding boxes 
 					m_UIShowBoundingBoxes = !m_UIShowBoundingBoxes;
@@ -908,6 +1031,29 @@ namespace Hazel {
 						m_EditorScene->DuplicateEntity(selectedEntity);
 					}
 					break;
+				case KeyCode::G:
+					// Toggle grid
+					SceneRenderer::GetOptions().ShowGrid = !SceneRenderer::GetOptions().ShowGrid;
+					break;
+				case KeyCode::N:
+					NewScene();
+					break;
+				case KeyCode::O:
+					OpenScene();
+					break;
+				case KeyCode::S:
+					SaveScene();
+					break;
+			}
+
+			if (Input::IsKeyPressed(HZ_KEY_LEFT_SHIFT))
+			{
+				switch (e.GetKeyCode())
+				{
+				case KeyCode::S:
+					SaveSceneAs();
+					break;
+				}
 			}
 		}
 
@@ -917,7 +1063,7 @@ namespace Hazel {
 	bool EditorLayer::OnMouseButtonPressed(MouseButtonPressedEvent& e)
 	{
 		auto [mx, my] = Input::GetMousePosition();
-		if (e.GetMouseButton() == HZ_MOUSE_BUTTON_LEFT && !Input::IsKeyPressed(KeyCode::LeftAlt) && !ImGuizmo::IsOver() && m_SceneState != SceneState::Play)
+		if (e.GetMouseButton() == HZ_MOUSE_BUTTON_LEFT && m_ViewportPanelMouseOver && !Input::IsKeyPressed(KeyCode::LeftAlt) && !ImGuizmo::IsOver() && m_SceneState != SceneState::Play)
 		{
 			auto [mouseX, mouseY] = GetMouseViewportSpace();
 			if (mouseX > -1.0f && mouseX < 1.0f && mouseY > -1.0f && mouseY < 1.0f)
@@ -940,8 +1086,8 @@ namespace Hazel {
 					{
 						auto& submesh = submeshes[i];
 						Ray ray = {
-							glm::inverse(entity.Transform() * submesh.Transform) * glm::vec4(origin, 1.0f),
-							glm::inverse(glm::mat3(entity.Transform()) * glm::mat3(submesh.Transform)) * direction
+							glm::inverse(entity.Transform().GetTransform() * submesh.Transform) * glm::vec4(origin, 1.0f),
+							glm::inverse(glm::mat3(entity.Transform().GetTransform()) * glm::mat3(submesh.Transform)) * direction
 						};
 
 						float t;
@@ -984,14 +1130,14 @@ namespace Hazel {
 	std::pair<glm::vec3, glm::vec3> EditorLayer::CastRay(float mx, float my)
 	{
 		glm::vec4 mouseClipPos = { mx, my, -1.0f, 1.0f };
-		
+
 		auto inverseProj = glm::inverse(m_EditorCamera.GetProjectionMatrix());
 		auto inverseView = glm::inverse(glm::mat3(m_EditorCamera.GetViewMatrix()));
 
 		glm::vec4 ray = inverseProj * mouseClipPos;
 		glm::vec3 rayPos = m_EditorCamera.GetPosition();
 		glm::vec3 rayDir = inverseView * glm::vec3(ray);
-			
+
 		return { rayPos, rayDir };
 	}
 

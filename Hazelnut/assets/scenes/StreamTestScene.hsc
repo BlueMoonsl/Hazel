@@ -11,7 +11,7 @@ Entities:
       Tag: Main Cube
     TransformComponent:
       Position: [0, 14.43297, -7.4505806e-09]
-      Rotation: [1, 0, 0, 0]
+      Rotation: [0, 0, 0]
       Scale: [4, 4, 1]
     MeshComponent:
       AssetPath: assets\meshes\Cube1m.fbx
@@ -26,7 +26,7 @@ Entities:
       Tag: Main Cube
     TransformComponent:
       Position: [13.6415138, 2.8245554, -3.03643901e-08]
-      Rotation: [0.960835755, 0, 0, 0.277118564]
+      Rotation: [0, 0, 0]
       Scale: [36, 3.99999952, 4]
     MeshComponent:
       AssetPath: assets\meshes\Cube1m.fbx
@@ -41,7 +41,7 @@ Entities:
       Tag: Main Cube
     TransformComponent:
       Position: [-10.8582497, 1.71247244, 2.49667664e-08]
-      Rotation: [0.981936872, 0, 0, -0.18920885]
+      Rotation: [0, 0, 0]
       Scale: [36, 4.00000238, 4]
     MeshComponent:
       AssetPath: assets\meshes\Cube1m.fbx
@@ -56,7 +56,7 @@ Entities:
       Tag: Main Cube
     TransformComponent:
       Position: [0, 91.4110565, 0]
-      Rotation: [0.942232013, 0, 0, 0.334960997]
+      Rotation: [0, 0, 0]
       Scale: [0.359999985, 0.360000014, 0.360000014]
     MeshComponent:
       AssetPath: assets\meshes\cerberus\CerberusMaterials.fbx
@@ -71,7 +71,7 @@ Entities:
       Tag: Camera
     TransformComponent:
       Position: [0, 13.8065729, 46]
-      Rotation: [0.996565521, -0.0828081891, 1.85624849e-09, 1.54242313e-10]
+      Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
     CameraComponent:
       Camera: some camera data...

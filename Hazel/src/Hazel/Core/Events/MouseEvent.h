@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Event.h"
 
@@ -6,7 +6,6 @@
 
 namespace Hazel {
 
-	// 鼠标移动事件
 	class MouseMovedEvent : public Event
 	{
 	public:
@@ -29,7 +28,6 @@ namespace Hazel {
 		float m_MouseX, m_MouseY;
 	};
 
-	// 鼠标滑轮滚动事件
 	class MouseScrolledEvent : public Event
 	{
 	public:
@@ -52,7 +50,6 @@ namespace Hazel {
 		float m_XOffset, m_YOffset;
 	};
 
-	// 鼠标按键基事件
 	class MouseButtonEvent : public Event
 	{
 	public:
@@ -66,7 +63,6 @@ namespace Hazel {
 		int m_Button;
 	};
 
-	// 鼠标按键点击事件
 	class MouseButtonPressedEvent : public MouseButtonEvent
 	{
 	public:
@@ -83,7 +79,6 @@ namespace Hazel {
 		EVENT_CLASS_TYPE(MouseButtonPressed)
 	};
 
-	// 鼠标按键释放事件
 	class MouseButtonReleasedEvent : public MouseButtonEvent
 	{
 	public:

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #ifdef HZ_DEBUG
 	#define HZ_ENABLE_ASSERTS

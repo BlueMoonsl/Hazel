@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <stdint.h>
 
@@ -29,7 +29,7 @@ namespace Hazel {
 			: m_Instance(nullptr)
 		{
 		}
-
+		
 		Ref(std::nullptr_t n)
 			: m_Instance(nullptr)
 		{
@@ -46,14 +46,14 @@ namespace Hazel {
 		template<typename T2>
 		Ref(const Ref<T2>& other)
 		{
-			m_Instance = other.m_Instance;
+			m_Instance = (T*)other.m_Instance;
 			IncRef();
 		}
 
 		template<typename T2>
 		Ref(Ref<T2>&& other)
 		{
-			m_Instance = other.m_Instance;
+			m_Instance = (T*)other.m_Instance;
 			other.m_Instance = nullptr;
 		}
 

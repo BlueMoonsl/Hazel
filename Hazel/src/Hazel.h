@@ -1,4 +1,4 @@
-﻿//
+//
 // Note:	this file is to be included in client applications ONLY
 //			NEVER include this file anywhere in the engine codebase
 //
@@ -25,8 +25,9 @@
 #include "Hazel/Renderer/SceneRenderer.h"
 #include "Hazel/Renderer/RenderPass.h"
 #include "Hazel/Renderer/Framebuffer.h"
-#include "Hazel/Renderer/Buffer.h"
-#include "Hazel/Renderer/VertexArray.h"
+#include "Hazel/Renderer/VertexBuffer.h"
+#include "Hazel/Renderer/IndexBuffer.h"
+#include "Hazel/Renderer/Pipeline.h"
 #include "Hazel/Renderer/Texture.h"
 #include "Hazel/Renderer/Shader.h"
 #include "Hazel/Renderer/Mesh.h"

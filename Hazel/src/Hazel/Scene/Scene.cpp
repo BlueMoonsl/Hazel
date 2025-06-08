@@ -9,6 +9,7 @@
 #include "Hazel/Script/ScriptEngine.h"
 
 #include "Hazel/Renderer/Renderer2D.h"
+#include "Hazel/Physics/Physics.h"
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
@@ -32,12 +33,74 @@ namespace Hazel {
 		UUID SceneID;
 	};
 
+	// TODO: MOVE TO PHYSICS FILE!
+	class ContactListener : public b2ContactListener
+	{
+	public:
+		virtual void BeginContact(b2Contact* contact) override
+		{
+			Entity& a = *(Entity*)contact->GetFixtureA()->GetBody()->GetUserData();
+			Entity& b = *(Entity*)contact->GetFixtureB()->GetBody()->GetUserData();
+
+			// TODO: improve these if checks
+			if (a.HasComponent<ScriptComponent>() && ScriptEngine::ModuleExists(a.GetComponent<ScriptComponent>().ModuleName))
+				ScriptEngine::OnCollision2DBegin(a);
+
+			if (b.HasComponent<ScriptComponent>() && ScriptEngine::ModuleExists(b.GetComponent<ScriptComponent>().ModuleName))
+				ScriptEngine::OnCollision2DBegin(b);
+		}
+
+		/// Called when two fixtures cease to touch.
+		virtual void EndContact(b2Contact* contact) override
+		{
+			Entity& a = *(Entity*)contact->GetFixtureA()->GetBody()->GetUserData();
+			Entity& b = *(Entity*)contact->GetFixtureB()->GetBody()->GetUserData();
+
+			// TODO: improve these if checks
+			if (a.HasComponent<ScriptComponent>() && ScriptEngine::ModuleExists(a.GetComponent<ScriptComponent>().ModuleName))
+				ScriptEngine::OnCollision2DEnd(a);
+
+			if (b.HasComponent<ScriptComponent>() && ScriptEngine::ModuleExists(b.GetComponent<ScriptComponent>().ModuleName))
+				ScriptEngine::OnCollision2DEnd(b);
+		}
+
+		/// This is called after a contact is updated. This allows you to inspect a
+		/// contact before it goes to the solver. If you are careful, you can modify the
+		/// contact manifold (e.g. disable contact).
+		/// A copy of the old manifold is provided so that you can detect changes.
+		/// Note: this is called only for awake bodies.
+		/// Note: this is called even when the number of contact points is zero.
+		/// Note: this is not called for sensors.
+		/// Note: if you set the number of contact points to zero, you will not
+		/// get an EndContact callback. However, you may get a BeginContact callback
+		/// the next step.
+		virtual void PreSolve(b2Contact* contact, const b2Manifold* oldManifold) override
+		{
+			B2_NOT_USED(contact);
+			B2_NOT_USED(oldManifold);
+		}
+
+		/// This lets you inspect a contact after the solver is finished. This is useful
+		/// for inspecting impulses.
+		/// Note: the contact manifold does not include time of impact impulses, which can be
+		/// arbitrarily large if the sub-step is small. Hence the impulse is provided explicitly
+		/// in a separate data structure.
+		/// Note: this is only called for contacts that are touching, solid, and awake.
+		virtual void PostSolve(b2Contact* contact, const b2ContactImpulse* impulse) override
+		{
+			B2_NOT_USED(contact);
+			B2_NOT_USED(impulse);
+		}
+	};
+
+	static ContactListener s_Box2DContactListener;
+
 	struct Box2DWorldComponent
 	{
 		std::unique_ptr<b2World> World;
 	};
 
-	void OnScriptComponentConstruct(entt::registry& registry, entt::entity entity)
+	static void OnScriptComponentConstruct(entt::registry& registry, entt::entity entity)
 	{
 		auto sceneView = registry.view<SceneComponent>();
 		UUID sceneID = registry.get<SceneComponent>(sceneView.front()).SceneID;
@@ -49,24 +112,44 @@ namespace Hazel {
 		ScriptEngine::InitScriptEntity(scene->m_EntityIDMap.at(entityID));
 	}
 
-	Scene::Scene(const std::string& debugName)
+	static void OnScriptComponentDestroy(entt::registry& registry, entt::entity entity)
+	{
+		auto sceneView = registry.view<SceneComponent>();
+		UUID sceneID = registry.get<SceneComponent>(sceneView.front()).SceneID;
+
+		Scene* scene = s_ActiveScenes[sceneID];
+
+		auto entityID = registry.get<IDComponent>(entity).ID;
+		ScriptEngine::OnScriptComponentDestroyed(sceneID, entityID);
+	}
+
+	Scene::Scene(const std::string& debugName, bool isEditorScene)
 		: m_DebugName(debugName)
 	{
 		m_Registry.on_construct<ScriptComponent>().connect<&OnScriptComponentConstruct>();
+		m_Registry.on_destroy<ScriptComponent>().connect<&OnScriptComponentDestroy>();
 
 		m_SceneEntity = m_Registry.create();
 		m_Registry.emplace<SceneComponent>(m_SceneEntity, m_SceneID);
 
 		// TODO: Obviously not necessary in all cases
-		m_Registry.emplace<Box2DWorldComponent>(m_SceneEntity, std::make_unique<b2World>(b2Vec2{ 0.0f, -9.8f }));
+		Box2DWorldComponent& b2dWorld = m_Registry.emplace<Box2DWorldComponent>(m_SceneEntity, std::make_unique<b2World>(b2Vec2{ 0.0f, -9.8f }));
+		b2dWorld.World->SetContactListener(&s_Box2DContactListener);
 
 		s_ActiveScenes[m_SceneID] = this;
+
+		if (!isEditorScene)
+		{
+			Physics::CreateScene();
+		}
 
 		Init();
 	}
 
 	Scene::~Scene()
 	{
+		m_Registry.on_destroy<ScriptComponent>().disconnect();
+
 		m_Registry.clear();
 		s_ActiveScenes.erase(m_SceneID);
 		ScriptEngine::OnSceneDestruct(m_SceneID);
@@ -79,31 +162,9 @@ namespace Hazel {
 		m_SkyboxMaterial->SetFlag(MaterialFlag::DepthTest, false);
 	}
 
-	static std::tuple<glm::vec3, glm::quat, glm::vec3> GetTransformDecomposition(const glm::mat4& transform)
-	{
-		glm::vec3 scale, translation, skew;
-		glm::vec4 perspective;
-		glm::quat orientation;
-		glm::decompose(transform, scale, orientation, translation, skew, perspective);
-
-		return { translation, orientation, scale };
-	}
-
 	// Merge OnUpdate/Render into one function?
 	void Scene::OnUpdate(Timestep ts)
 	{
-		// Update all entities
-		{
-			auto view = m_Registry.view<ScriptComponent>();
-			for (auto entity : view)
-			{
-				UUID entityID = m_Registry.get<IDComponent>(entity).ID;
-				Entity e = { entity, this };
-				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
-					ScriptEngine::OnUpdateEntity(m_SceneID, entityID, ts);
-			}
-		}
-
 		// Box2D physics
 		auto sceneView = m_Registry.view<Box2DWorldComponent>();
 		auto& box2DWorld = m_Registry.get<Box2DWorldComponent>(sceneView.front()).World;
@@ -116,20 +177,29 @@ namespace Hazel {
 			for (auto entity : view)
 			{
 				Entity e = { entity, this };
-				auto& transform = e.Transform();
 				auto& rb2d = e.GetComponent<RigidBody2DComponent>();
 				b2Body* body = static_cast<b2Body*>(rb2d.RuntimeBody);
 
 				auto& position = body->GetPosition();
-				auto [translation, rotationQuat, scale] = GetTransformDecomposition(transform);
-				glm::vec3 rotation = glm::eulerAngles(rotationQuat);
-
-				transform = glm::translate(glm::mat4(1.0f), { position.x, position.y, transform[3].z }) *
-					glm::toMat4(glm::quat({ rotation.x, rotation.y, body->GetAngle() })) *
-					glm::scale(glm::mat4(1.0f), scale);
+				auto& transform = e.GetComponent<TransformComponent>();
+				transform.Translation.x = position.x;
+				transform.Translation.y = position.y;
+				transform.Rotation.z = body->GetAngle();
 			}
 		}
 
+		// Update all entities
+		{
+			auto view = m_Registry.view<ScriptComponent>();
+			for (auto entity : view)
+			{
+				Entity e = { entity, this };
+				if (ScriptEngine::ModuleExists(e.GetComponent<ScriptComponent>().ModuleName))
+					ScriptEngine::OnUpdateEntity(e, ts);
+			}
+		}
+
+		Physics::Simulate(ts);
 	}
 
 	void Scene::OnRenderRuntime(Timestep ts)
@@ -141,7 +211,7 @@ namespace Hazel {
 		if (!cameraEntity)
 			return;
 
-		glm::mat4 cameraViewMatrix = glm::inverse(cameraEntity.GetComponent<TransformComponent>().Transform);
+		glm::mat4 cameraViewMatrix = glm::inverse(cameraEntity.Transform().GetTransform());
 		HZ_CORE_ASSERT(cameraEntity, "Scene does not contain any cameras!");
 		SceneCamera& camera = cameraEntity.GetComponent<CameraComponent>();
 		camera.SetViewportSize(m_ViewportWidth, m_ViewportHeight);
@@ -158,7 +228,7 @@ namespace Hazel {
 				meshComponent.Mesh->OnUpdate(ts);
 
 				// TODO: Should we render (logically)
-				SceneRenderer::SubmitMesh(meshComponent, transformComponent, nullptr);
+				SceneRenderer::SubmitMesh(meshComponent, transformComponent.GetTransform(), nullptr);
 			}
 		}
 		SceneRenderer::EndScene();
@@ -188,25 +258,105 @@ namespace Hazel {
 		/////////////////////////////////////////////////////////////////////
 		// RENDER 3D SCENE
 		/////////////////////////////////////////////////////////////////////
+
+		{
+			m_LightEnvironment = LightEnvironment();
+			auto lights = m_Registry.group<DirectionalLightComponent>(entt::get<TransformComponent>);
+			uint32_t directionalLightIndex = 0;
+			for (auto entity : lights)
+			{
+				auto [transformComponent, lightComponent] = lights.get<TransformComponent, DirectionalLightComponent>(entity);
+				glm::vec3 direction = -glm::normalize(glm::mat3(transformComponent.GetTransform()) * glm::vec3(1.0f));
+				m_LightEnvironment.DirectionalLights[directionalLightIndex++] =
+				{
+					direction,
+					lightComponent.Radiance,
+					lightComponent.Intensity,
+					lightComponent.CastShadows
+				};
+			}
+		}
+
+		{
+			m_Environment = Environment();
+			auto lights = m_Registry.group<SkyLightComponent>(entt::get<TransformComponent>);
+			for (auto entity : lights)
+			{
+				auto [transformComponent, skyLightComponent] = lights.get<TransformComponent, SkyLightComponent>(entity);
+				m_Environment = skyLightComponent.SceneEnvironment;
+				m_EnvironmentIntensity = skyLightComponent.Intensity;
+				SetSkybox(m_Environment.RadianceMap);
+			}
+		}
+
 		m_SkyboxMaterial->Set("u_TextureLod", m_SkyboxLod);
 
 		auto group = m_Registry.group<MeshComponent>(entt::get<TransformComponent>);
-		SceneRenderer::BeginScene(this, { editorCamera, editorCamera.GetViewMatrix() });
+		SceneRenderer::BeginScene(this, { editorCamera, editorCamera.GetViewMatrix(), 0.1f, 1000.0f, 45.0f }); // TODO: real values
 		for (auto entity : group)
 		{
-			auto [transformComponent, meshComponent] = group.get<TransformComponent, MeshComponent>(entity);
+			auto& [meshComponent, transformComponent] = group.get<MeshComponent, TransformComponent>(entity);
 			if (meshComponent.Mesh)
 			{
 				meshComponent.Mesh->OnUpdate(ts);
 
 				// TODO: Should we render (logically)
+				SceneRenderer::SubmitMesh(meshComponent, transformComponent.GetTransform());
 
-				if (m_SelectedEntity == entity)
-					SceneRenderer::SubmitSelectedMesh(meshComponent, transformComponent);
-				else
-					SceneRenderer::SubmitMesh(meshComponent, transformComponent, nullptr);
+				/*if (m_SelectedEntity == entity)
+					SceneRenderer::SubmitSelectedMesh(meshComponent, transformComponent);*/
 			}
 		}
+
+		{
+			auto view = m_Registry.view<BoxColliderComponent>();
+			for (auto entity : view)
+			{
+				Entity e = { entity, this };
+				auto& collider = e.GetComponent<BoxColliderComponent>();
+
+				if (m_SelectedEntity == entity)
+					SceneRenderer::SubmitColliderMesh(collider, e.GetComponent<TransformComponent>().GetTransform());
+			}
+		}
+
+		{
+			auto view = m_Registry.view<SphereColliderComponent>();
+			for (auto entity : view)
+			{
+				Entity e = { entity, this };
+				auto& collider = e.GetComponent<SphereColliderComponent>();
+
+				if (m_SelectedEntity == entity)
+					SceneRenderer::SubmitColliderMesh(collider, e.GetComponent<TransformComponent>().GetTransform());
+			}
+		}
+
+		{
+			auto view = m_Registry.view<CapsuleColliderComponent>();
+			for (auto entity : view)
+			{
+				Entity e = { entity, this };
+				auto& collider = e.GetComponent<CapsuleColliderComponent>();
+
+				if (m_SelectedEntity == entity)
+					SceneRenderer::SubmitColliderMesh(collider, e.GetComponent<TransformComponent>().GetTransform());
+			}
+		}
+
+		{
+			auto view = m_Registry.view<MeshColliderComponent>();
+			for (auto entity : view)
+			{
+				Entity e = { entity, this };
+				auto& collider = e.GetComponent<MeshColliderComponent>();
+
+				if (m_SelectedEntity == entity)
+					SceneRenderer::SubmitColliderMesh(collider, e.GetComponent<TransformComponent>().GetTransform());
+			}
+		}
+
+
 		SceneRenderer::EndScene();
 		/////////////////////////////////////////////////////////////////////
 
@@ -250,12 +400,16 @@ namespace Hazel {
 		// Box2D physics
 		auto sceneView = m_Registry.view<Box2DWorldComponent>();
 		auto& world = m_Registry.get<Box2DWorldComponent>(sceneView.front()).World;
+		
 		{
 			auto view = m_Registry.view<RigidBody2DComponent>();
+			m_Physics2DBodyEntityBuffer = new Entity[view.size()];
+			uint32_t physicsBodyEntityBufferIndex = 0;
 			for (auto entity : view)
 			{
 				Entity e = { entity, this };
-				auto& transform = e.Transform();
+				UUID entityID = e.GetComponent<IDComponent>().ID;
+				TransformComponent& transform = e.GetComponent<TransformComponent>();
 				auto& rigidBody2D = m_Registry.get<RigidBody2DComponent>(entity);
 
 				b2BodyDef bodyDef;
@@ -265,12 +419,16 @@ namespace Hazel {
 					bodyDef.type = b2_dynamicBody;
 				else if (rigidBody2D.BodyType == RigidBody2DComponent::Type::Kinematic)
 					bodyDef.type = b2_kinematicBody;
-				bodyDef.position.Set(transform[3].x, transform[3].y);
+				bodyDef.position.Set(transform.Translation.x, transform.Translation.y);
 				
-				auto [translation, rotationQuat, scale] = GetTransformDecomposition(transform);
-				glm::vec3 rotation = glm::eulerAngles(rotationQuat);
-				bodyDef.angle = rotation.z;
-				rigidBody2D.RuntimeBody = world->CreateBody(&bodyDef);
+				bodyDef.angle = transform.Rotation.z;
+
+				b2Body* body = world->CreateBody(&bodyDef);
+				body->SetFixedRotation(rigidBody2D.FixedRotation);
+				Entity* entityStorage = &m_Physics2DBodyEntityBuffer[physicsBodyEntityBufferIndex++];
+				*entityStorage = e;
+				body->SetUserData((void*)entityStorage);
+				rigidBody2D.RuntimeBody = body;
 			}
 		}
 
@@ -291,11 +449,10 @@ namespace Hazel {
 					b2PolygonShape polygonShape;
 					polygonShape.SetAsBox(boxCollider2D.Size.x, boxCollider2D.Size.y);
 
-					// TODO:
 					b2FixtureDef fixtureDef;
 					fixtureDef.shape = &polygonShape;
-					fixtureDef.density = 1.0f;
-					fixtureDef.friction = 1.0f;
+					fixtureDef.density = boxCollider2D.Density;
+					fixtureDef.friction = boxCollider2D.Friction;
 					body->CreateFixture(&fixtureDef);
 				}
 			}
@@ -318,13 +475,22 @@ namespace Hazel {
 					b2CircleShape circleShape;
 					circleShape.m_radius = circleCollider2D.Radius;
 
-					// TODO:
 					b2FixtureDef fixtureDef;
 					fixtureDef.shape = &circleShape;
-					fixtureDef.density = 1.0f;
-					fixtureDef.friction = 1.0f;
+					fixtureDef.density = circleCollider2D.Density;
+					fixtureDef.friction = circleCollider2D.Friction;
 					body->CreateFixture(&fixtureDef);
 				}
+			}
+		}
+
+		{
+			auto view = m_Registry.view<RigidBodyComponent>();
+			Physics::ExpandEntityBuffer(view.size());
+			for (auto entity : view)
+			{
+				Entity e = { entity, this };
+				Physics::CreateActor(e);
 			}
 		}
 
@@ -333,6 +499,8 @@ namespace Hazel {
 
 	void Scene::OnRuntimeStop()
 	{
+		delete[] m_Physics2DBodyEntityBuffer;
+		Physics::DestroyScene();
 		m_IsPlaying = false;
 	}
 
@@ -340,12 +508,6 @@ namespace Hazel {
 	{
 		m_ViewportWidth = width;
 		m_ViewportHeight = height;
-	}
-
-	void Scene::SetEnvironment(const Environment& environment)
-	{
-		m_Environment = environment;
-		SetSkybox(environment.RadianceMap);
 	}
 
 	void Scene::SetSkybox(const Ref<TextureCube>& skybox)
@@ -372,7 +534,7 @@ namespace Hazel {
 		auto& idComponent = entity.AddComponent<IDComponent>();
 		idComponent.ID = {};
 
-		entity.AddComponent<TransformComponent>(glm::mat4(1.0f));
+		entity.AddComponent<TransformComponent>();
 		if (!name.empty())
 			entity.AddComponent<TagComponent>(name);
 
@@ -386,7 +548,7 @@ namespace Hazel {
 		auto& idComponent = entity.AddComponent<IDComponent>();
 		idComponent.ID = uuid;
 
-		entity.AddComponent<TransformComponent>(glm::mat4(1.0f));
+		entity.AddComponent<TransformComponent>();
 		if (!name.empty())
 			entity.AddComponent<TagComponent>(name);
 
@@ -436,12 +598,34 @@ namespace Hazel {
 
 		CopyComponentIfExists<TransformComponent>(newEntity.m_EntityHandle, entity.m_EntityHandle, m_Registry);
 		CopyComponentIfExists<MeshComponent>(newEntity.m_EntityHandle, entity.m_EntityHandle, m_Registry);
+		CopyComponentIfExists<DirectionalLightComponent>(newEntity.m_EntityHandle, entity.m_EntityHandle, m_Registry);
+		CopyComponentIfExists<SkyLightComponent>(newEntity.m_EntityHandle, entity.m_EntityHandle, m_Registry);
 		CopyComponentIfExists<ScriptComponent>(newEntity.m_EntityHandle, entity.m_EntityHandle, m_Registry);
 		CopyComponentIfExists<CameraComponent>(newEntity.m_EntityHandle, entity.m_EntityHandle, m_Registry);
 		CopyComponentIfExists<SpriteRendererComponent>(newEntity.m_EntityHandle, entity.m_EntityHandle, m_Registry);
 		CopyComponentIfExists<RigidBody2DComponent>(newEntity.m_EntityHandle, entity.m_EntityHandle, m_Registry);
 		CopyComponentIfExists<BoxCollider2DComponent>(newEntity.m_EntityHandle, entity.m_EntityHandle, m_Registry);
 		CopyComponentIfExists<CircleCollider2DComponent>(newEntity.m_EntityHandle, entity.m_EntityHandle, m_Registry);
+		CopyComponentIfExists<RigidBodyComponent>(newEntity.m_EntityHandle, entity.m_EntityHandle, m_Registry);
+		CopyComponentIfExists<PhysicsMaterialComponent>(newEntity.m_EntityHandle, entity.m_EntityHandle, m_Registry);
+		CopyComponentIfExists<BoxColliderComponent>(newEntity.m_EntityHandle, entity.m_EntityHandle, m_Registry);
+		CopyComponentIfExists<SphereColliderComponent>(newEntity.m_EntityHandle, entity.m_EntityHandle, m_Registry);
+		CopyComponentIfExists<CapsuleColliderComponent>(newEntity.m_EntityHandle, entity.m_EntityHandle, m_Registry);
+		CopyComponentIfExists<MeshColliderComponent>(newEntity.m_EntityHandle, entity.m_EntityHandle, m_Registry);
+	}
+
+	Entity Scene::FindEntityByTag(const std::string& tag)
+	{
+		// TODO: If this becomes used often, consider indexing by tag
+		auto view = m_Registry.view<TagComponent>();
+		for (auto entity : view)
+		{
+			const auto& canditate = view.get<TagComponent>(entity).Tag;
+			if (canditate == tag)
+				return Entity(entity, this);
+		}
+
+		return Entity{};
 	}
 
 	// Copy to runtime
@@ -468,12 +652,20 @@ namespace Hazel {
 		CopyComponent<TagComponent>(target->m_Registry, m_Registry, enttMap);
 		CopyComponent<TransformComponent>(target->m_Registry, m_Registry, enttMap);
 		CopyComponent<MeshComponent>(target->m_Registry, m_Registry, enttMap);
+		CopyComponent<DirectionalLightComponent>(target->m_Registry, m_Registry, enttMap);
+		CopyComponent<SkyLightComponent>(target->m_Registry, m_Registry, enttMap);
 		CopyComponent<ScriptComponent>(target->m_Registry, m_Registry, enttMap);
 		CopyComponent<CameraComponent>(target->m_Registry, m_Registry, enttMap);
 		CopyComponent<SpriteRendererComponent>(target->m_Registry, m_Registry, enttMap);
 		CopyComponent<RigidBody2DComponent>(target->m_Registry, m_Registry, enttMap);
 		CopyComponent<BoxCollider2DComponent>(target->m_Registry, m_Registry, enttMap);
 		CopyComponent<CircleCollider2DComponent>(target->m_Registry, m_Registry, enttMap);
+		CopyComponent<RigidBodyComponent>(target->m_Registry, m_Registry, enttMap);
+		CopyComponent<PhysicsMaterialComponent>(target->m_Registry, m_Registry, enttMap);
+		CopyComponent<BoxColliderComponent>(target->m_Registry, m_Registry, enttMap);
+		CopyComponent<SphereColliderComponent>(target->m_Registry, m_Registry, enttMap);
+		CopyComponent<CapsuleColliderComponent>(target->m_Registry, m_Registry, enttMap);
+		CopyComponent<MeshColliderComponent>(target->m_Registry, m_Registry, enttMap);
 
 		const auto& entityInstanceMap = ScriptEngine::GetEntityInstanceMap();
 		if (entityInstanceMap.find(target->GetUUID()) != entityInstanceMap.end())

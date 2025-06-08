@@ -2,7 +2,8 @@
 Open Asset Import Library (assimp)
 ----------------------------------------------------------------------
 
-Copyright (c) 2006-2025, assimp team
+Copyright (c) 2006-2019, assimp team
+
 
 All rights reserved.
 
@@ -39,25 +40,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ----------------------------------------------------------------------
 */
 
-/** @file Helper class tp perform various byte order swappings
+/** @file Helper class tp perform various byte oder swappings
    (e.g. little to big endian) */
-#pragma once
 #ifndef AI_BYTESWAPPER_H_INC
 #define AI_BYTESWAPPER_H_INC
 
-#ifdef __GNUC__
-#   pragma GCC system_header
-#endif
-
 #include <assimp/ai_assert.h>
 #include <assimp/types.h>
-#include <cstdint>
+#include <stdint.h>
 
 #if _MSC_VER >= 1400
-#include <cstdlib>
+#include <stdlib.h>
 #endif
 
-namespace Assimp {
+namespace Assimp    {
 // --------------------------------------------------------------------------------------
 /** Defines some useful byte order swap routines.
  *
@@ -65,10 +61,10 @@ namespace Assimp {
  * and vice versa. Direct use of this class is DEPRECATED. Use #StreamReader instead. */
 // --------------------------------------------------------------------------------------
 class ByteSwap {
-    ByteSwap() AI_NO_EXCEPT = default;
-    ~ByteSwap() = default;
+    ByteSwap() AI_NO_EXCEPT {}
 
 public:
+
     // ----------------------------------------------------------------------
     /** Swap two bytes of data
      *  @param[inout] _szOut A void* to save the reintcasts for the caller. */
@@ -88,7 +84,8 @@ public:
     // ----------------------------------------------------------------------
     /** Swap four bytes of data
      *  @param[inout] _szOut A void* to save the reintcasts for the caller. */
-    static inline void Swap4(void* _szOut) {
+    static inline void Swap4(void* _szOut)
+    {
         ai_assert(_szOut);
 
 #if _MSC_VER >= 1400
@@ -209,7 +206,7 @@ template <typename T> struct ByteSwap::_swapper<T,8> {
 // --------------------------------------------------------------------------------------
 #if (defined AI_BUILD_BIG_ENDIAN)
 #   define AI_LE(t) (t)
-#   define AI_BE(t) Assimp::ByteSwap::Swapped(t)
+#   define AI_BE(t) ByteSwap::Swapped(t)
 #   define AI_LSWAP2(p)
 #   define AI_LSWAP4(p)
 #   define AI_LSWAP8(p)
@@ -217,16 +214,16 @@ template <typename T> struct ByteSwap::_swapper<T,8> {
 #   define AI_LSWAP4P(p)
 #   define AI_LSWAP8P(p)
 #   define LE_NCONST const
-#   define AI_SWAP2(p) Assimp::ByteSwap::Swap2(&(p))
-#   define AI_SWAP4(p) Assimp::ByteSwap::Swap4(&(p))
-#   define AI_SWAP8(p) Assimp::ByteSwap::Swap8(&(p))
-#   define AI_SWAP2P(p) Assimp::ByteSwap::Swap2((p))
-#   define AI_SWAP4P(p) Assimp::ByteSwap::Swap4((p))
-#   define AI_SWAP8P(p) Assimp::ByteSwap::Swap8((p))
+#   define AI_SWAP2(p) ByteSwap::Swap2(&(p))
+#   define AI_SWAP4(p) ByteSwap::Swap4(&(p))
+#   define AI_SWAP8(p) ByteSwap::Swap8(&(p))
+#   define AI_SWAP2P(p) ByteSwap::Swap2((p))
+#   define AI_SWAP4P(p) ByteSwap::Swap4((p))
+#   define AI_SWAP8P(p) ByteSwap::Swap8((p))
 #   define BE_NCONST
 #else
 #   define AI_BE(t) (t)
-#   define AI_LE(t) Assimp::ByteSwap::Swapped(t)
+#   define AI_LE(t) ByteSwap::Swapped(t)
 #   define AI_SWAP2(p)
 #   define AI_SWAP4(p)
 #   define AI_SWAP8(p)
@@ -234,12 +231,12 @@ template <typename T> struct ByteSwap::_swapper<T,8> {
 #   define AI_SWAP4P(p)
 #   define AI_SWAP8P(p)
 #   define BE_NCONST const
-#   define AI_LSWAP2(p)     Assimp::ByteSwap::Swap2(&(p))
-#   define AI_LSWAP4(p)     Assimp::ByteSwap::Swap4(&(p))
-#   define AI_LSWAP8(p)     Assimp::ByteSwap::Swap8(&(p))
-#   define AI_LSWAP2P(p)    Assimp::ByteSwap::Swap2((p))
-#   define AI_LSWAP4P(p)    Assimp::ByteSwap::Swap4((p))
-#   define AI_LSWAP8P(p)    Assimp::ByteSwap::Swap8((p))
+#   define AI_LSWAP2(p)     ByteSwap::Swap2(&(p))
+#   define AI_LSWAP4(p)     ByteSwap::Swap4(&(p))
+#   define AI_LSWAP8(p)     ByteSwap::Swap8(&(p))
+#   define AI_LSWAP2P(p)    ByteSwap::Swap2((p))
+#   define AI_LSWAP4P(p)    ByteSwap::Swap4((p))
+#   define AI_LSWAP8P(p)    ByteSwap::Swap8((p))
 #   define LE_NCONST
 #endif
 
@@ -261,7 +258,7 @@ struct ByteSwapper<T,false> {
 };
 
 // --------------------------------------------------------------------------------------------
-template <bool SwapEndianness, typename T, bool RuntimeSwitch>
+template <bool SwapEndianess, typename T, bool RuntimeSwitch>
 struct Getter {
     void operator() (T* inout, bool le) {
 #ifdef AI_BUILD_BIG_ENDIAN
@@ -276,12 +273,12 @@ struct Getter {
     }
 };
 
-template <bool SwapEndianness, typename T>
-struct Getter<SwapEndianness,T,false> {
+template <bool SwapEndianess, typename T>
+struct Getter<SwapEndianess,T,false> {
 
     void operator() (T* inout, bool /*le*/) {
         // static branch
-        ByteSwapper<T,(SwapEndianness && sizeof(T)>1)> () (inout);
+        ByteSwapper<T,(SwapEndianess && sizeof(T)>1)> () (inout);
     }
 };
 } // end Intern

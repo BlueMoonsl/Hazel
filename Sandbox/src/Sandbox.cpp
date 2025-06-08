@@ -1,4 +1,4 @@
-﻿#include "Hazel.h"
+#include "Hazel.h"
 
 #include "Hazel/ImGui/ImGuiLayer.h"
 #include "imgui/imgui_internal.h"
@@ -46,8 +46,7 @@ public:
 		m_QuadShader = Hazel::Shader::Create("assets/shaders/quad.glsl");
 		m_HDRShader = Hazel::Shader::Create("assets/shaders/hdr.glsl");
 
-		m_SphereMesh.reset(new Hazel::Mesh("assets/models/Sphere1m.fbx"))
-			;
+		m_SphereMesh.reset(new Hazel::Mesh("assets/models/Sphere1m.fbx"));
 		m_PlaneMesh.reset(new Hazel::Mesh("assets/models/Plane1m.obj"));
 
 		m_GridShader = Hazel::Shader::Create("assets/shaders/Grid.glsl");
@@ -120,7 +119,7 @@ public:
 		m_VertexBuffer.reset(Hazel::VertexBuffer::Create());
 		m_VertexBuffer->SetData(data, 4 * sizeof(QuadVertex));
 
-		uint32_t* indices = new uint32_t[6]{ 0, 1, 2, 2, 3, 0, };
+		uint32_t* indices = new uint32_t[6] { 0, 1, 2, 2, 3, 0, };
 		m_IndexBuffer.reset(Hazel::IndexBuffer::Create());
 		m_IndexBuffer->SetData(indices, 6 * sizeof(uint32_t));
 
@@ -157,7 +156,7 @@ public:
 		m_IndexBuffer->Bind();
 		Renderer::DrawIndexed(m_IndexBuffer->GetCount(), false);
 
-		m_MeshMaterial->Set("u_AlbedoColor", m_AlbedoInput.Color); 
+		m_MeshMaterial->Set("u_AlbedoColor", m_AlbedoInput.Color);
 		m_MeshMaterial->Set("u_Metalness", m_MetalnessInput.Value);
 		m_MeshMaterial->Set("u_Roughness", m_RoughnessInput.Value);
 		m_MeshMaterial->Set("u_ViewProjectionMatrix", viewProjection);
@@ -228,7 +227,7 @@ public:
 		}
 		else if (m_Scene == Scene::Model)
 		{
-			if (m_Mesh)
+			if (m_Mesh) 
 				m_Mesh->Render(ts, scale(mat4(1.0f), vec3(m_MeshScale)), m_MeshMaterial);
 		}
 
@@ -372,7 +371,7 @@ public:
 
 		ImGui::Columns(2);
 		ImGui::AlignTextToFramePadding();
-
+		
 		Property("Light Direction", m_Light.Direction);
 		Property("Light Radiance", m_Light.Radiance, PropertyFlag::ColorProperty);
 		Property("Light Multiplier", m_LightMultiplier, 0.0f, 5.0f);
@@ -620,7 +619,7 @@ public:
 	{
 	}
 private:
-	Hazel::Ref<Hazel::Shader> m_QuadShader; 
+	Hazel::Ref<Hazel::Shader> m_QuadShader;
 	Hazel::Ref<Hazel::Shader> m_HDRShader;
 	Hazel::Ref<Hazel::Shader> m_GridShader;
 	Hazel::Ref<Hazel::Mesh> m_Mesh;

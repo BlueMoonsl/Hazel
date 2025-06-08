@@ -1,4 +1,4 @@
-﻿#include "hzpch.h"
+#include "hzpch.h"
 #include "Mat4.h"
 
 #include <assimp/matrix4x4.h>

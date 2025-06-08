@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 using Hazel;
 
@@ -11,31 +7,26 @@ namespace Example
     public class BasicController : Entity
     {
         public float Speed;
+        public float DistanceFromPlayer = 20.0F;
+
+        private Entity m_PlayerEntity;
 
         public void OnCreate()
         {
+            m_PlayerEntity = FindEntityByTag("Player");
         }
 
         public void OnUpdate(float ts)
         {
-            Matrix4 transform = GetTransform();
+            /*Matrix4 transform = GetTransform();
+
+            Vector3 playerTranslation = m_PlayerEntity.GetTransform().Translation;
             Vector3 translation = transform.Translation;
-
-            float speed = Speed * ts;
-
-            if (Input.IsKeyPressed(KeyCode.Up))
-                translation.Y += speed;
-            else if (Input.IsKeyPressed(KeyCode.Down))
-                translation.Y -= speed;
-            if (Input.IsKeyPressed(KeyCode.Right))
-                translation.X += speed;
-            else if (Input.IsKeyPressed(KeyCode.Left))
-                translation.X -= speed;
-
+            translation.XY = playerTranslation.XY;
+            translation.Z = playerTranslation.Z + DistanceFromPlayer;
+            translation.Y = Math.Max(translation.Y, 2.0f);
             transform.Translation = translation;
-            SetTransform(transform);
+            SetTransform(transform);*/
         }
-
-
     }
 }

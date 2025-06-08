@@ -1,4 +1,4 @@
-﻿#include "hzpch.h"
+#include "hzpch.h"
 #include "Noise.h"
 
 #include "FastNoise.h"

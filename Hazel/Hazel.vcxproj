@@ -26,19 +26,19 @@
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Dist|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -76,21 +76,21 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>hzpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>HZ_PLATFORM_WINDOWS;HZ_BUILD_DLL;HZ_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;vendor;vendor\GLFW\include;vendor\Glad\include;vendor\glm;vendor\ImGui;vendor\Box2D\include;vendor\entt\include;vendor\mono\include;vendor\FastNoise;vendor\assimp\include;vendor\stb\include;vendor\yaml-cpp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>PX_PHYSX_STATIC_LIB;HZ_PLATFORM_WINDOWS;HZ_BUILD_DLL;HZ_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src;vendor;vendor\GLFW\include;vendor\Glad\include;vendor\glm;vendor\ImGui;vendor\Box2D\include;vendor\entt\include;vendor\mono\include;vendor\FastNoise;vendor\PhysX\include;vendor\assimp\include;vendor\stb\include;vendor\yaml-cpp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
+      <MinimalRebuild>false</MinimalRebuild>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalOptions>/MDd %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <ExternalWarningLevel>Level3</ExternalWarningLevel>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalDependencies>opengl32.lib;vendor\mono\lib\Debug\mono-2.0-sgen.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;vendor\mono\lib\Debug\mono-2.0-sgen.lib;vendor\PhysX\lib\Debug\PhysX_static_64.lib;vendor\PhysX\lib\Debug\PhysXCharacterKinematic_static_64.lib;vendor\PhysX\lib\Debug\PhysXCommon_static_64.lib;vendor\PhysX\lib\Debug\PhysXCooking_static_64.lib;vendor\PhysX\lib\Debug\PhysXExtensions_static_64.lib;vendor\PhysX\lib\Debug\PhysXFoundation_static_64.lib;vendor\PhysX\lib\Debug\PhysXPvdSDK_static_64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -98,17 +98,16 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>hzpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>HZ_PLATFORM_WINDOWS;HZ_BUILD_DLL;HZ_RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;vendor;vendor\GLFW\include;vendor\Glad\include;vendor\glm;vendor\ImGui;vendor\Box2D\include;vendor\entt\include;vendor\mono\include;vendor\FastNoise;vendor\assimp\include;vendor\stb\include;vendor\yaml-cpp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>PX_PHYSX_STATIC_LIB;HZ_PLATFORM_WINDOWS;HZ_BUILD_DLL;HZ_RELEASE;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src;vendor;vendor\GLFW\include;vendor\Glad\include;vendor\glm;vendor\ImGui;vendor\Box2D\include;vendor\entt\include;vendor\mono\include;vendor\FastNoise;vendor\PhysX\include;vendor\assimp\include;vendor\stb\include;vendor\yaml-cpp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <MinimalRebuild>false</MinimalRebuild>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalOptions>/MD %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <ExternalWarningLevel>Level3</ExternalWarningLevel>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -116,7 +115,7 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalDependencies>opengl32.lib;vendor\mono\lib\Debug\mono-2.0-sgen.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;vendor\mono\lib\Debug\mono-2.0-sgen.lib;vendor\PhysX\lib\Release\PhysX_static_64.lib;vendor\PhysX\lib\Release\PhysXCharacterKinematic_static_64.lib;vendor\PhysX\lib\Release\PhysXCommon_static_64.lib;vendor\PhysX\lib\Release\PhysXCooking_static_64.lib;vendor\PhysX\lib\Release\PhysXExtensions_static_64.lib;vendor\PhysX\lib\Release\PhysXFoundation_static_64.lib;vendor\PhysX\lib\Release\PhysXPvdSDK_static_64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Dist|x64'">
@@ -124,17 +123,16 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>hzpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
-      <PreprocessorDefinitions>HZ_PLATFORM_WINDOWS;HZ_BUILD_DLL;HZ_DIST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;vendor;vendor\GLFW\include;vendor\Glad\include;vendor\glm;vendor\ImGui;vendor\Box2D\include;vendor\entt\include;vendor\mono\include;vendor\FastNoise;vendor\assimp\include;vendor\stb\include;vendor\yaml-cpp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>PX_PHYSX_STATIC_LIB;HZ_PLATFORM_WINDOWS;HZ_BUILD_DLL;HZ_DIST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src;vendor;vendor\GLFW\include;vendor\Glad\include;vendor\glm;vendor\ImGui;vendor\Box2D\include;vendor\entt\include;vendor\mono\include;vendor\FastNoise;vendor\PhysX\include;vendor\assimp\include;vendor\stb\include;vendor\yaml-cpp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <MinimalRebuild>false</MinimalRebuild>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalOptions>/MD %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <ExternalWarningLevel>Level3</ExternalWarningLevel>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -142,7 +140,7 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Lib>
-      <AdditionalDependencies>opengl32.lib;vendor\mono\lib\Debug\mono-2.0-sgen.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;vendor\mono\lib\Debug\mono-2.0-sgen.lib;vendor\PhysX\lib\Dist\PhysX_static_64.lib;vendor\PhysX\lib\Dist\PhysXCharacterKinematic_static_64.lib;vendor\PhysX\lib\Dist\PhysXCommon_static_64.lib;vendor\PhysX\lib\Dist\PhysXCooking_static_64.lib;vendor\PhysX\lib\Dist\PhysXExtensions_static_64.lib;vendor\PhysX\lib\Dist\PhysXFoundation_static_64.lib;vendor\PhysX\lib\Dist\PhysXPvdSDK_static_64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -171,33 +169,43 @@
     <ClInclude Include="src\Hazel\Core\UUID.h" />
     <ClInclude Include="src\Hazel\Core\Window.h" />
     <ClInclude Include="src\Hazel\Editor\EditorCamera.h" />
+    <ClInclude Include="src\Hazel\Editor\PhysicsSettingsWindow.h" />
     <ClInclude Include="src\Hazel\Editor\SceneHierarchyPanel.h" />
     <ClInclude Include="src\Hazel\EntryPoint.h" />
+    <ClInclude Include="src\Hazel\ImGui\ImGui.h" />
     <ClInclude Include="src\Hazel\ImGui\ImGuiLayer.h" />
     <ClInclude Include="src\Hazel\ImGui\ImGuizmo.h" />
-    <ClInclude Include="src\Hazel\Platform\OpenGL\OpenGLBuffer.h" />
+    <ClInclude Include="src\Hazel\Physics\PXPhysicsWrappers.h" />
+    <ClInclude Include="src\Hazel\Physics\Physics.h" />
+    <ClInclude Include="src\Hazel\Physics\PhysicsLayer.h" />
+    <ClInclude Include="src\Hazel\Physics\PhysicsUtil.h" />
     <ClInclude Include="src\Hazel\Platform\OpenGL\OpenGLFramebuffer.h" />
+    <ClInclude Include="src\Hazel\Platform\OpenGL\OpenGLIndexBuffer.h" />
+    <ClInclude Include="src\Hazel\Platform\OpenGL\OpenGLPipeline.h" />
     <ClInclude Include="src\Hazel\Platform\OpenGL\OpenGLRenderPass.h" />
     <ClInclude Include="src\Hazel\Platform\OpenGL\OpenGLShader.h" />
     <ClInclude Include="src\Hazel\Platform\OpenGL\OpenGLShaderUniform.h" />
     <ClInclude Include="src\Hazel\Platform\OpenGL\OpenGLTexture.h" />
-    <ClInclude Include="src\Hazel\Platform\OpenGL\OpenGLVertexArray.h" />
+    <ClInclude Include="src\Hazel\Platform\OpenGL\OpenGLVertexBuffer.h" />
     <ClInclude Include="src\Hazel\Platform\Windows\WindowsWindow.h" />
-    <ClInclude Include="src\Hazel\Renderer\Buffer.h" />
     <ClInclude Include="src\Hazel\Renderer\Camera.h" />
     <ClInclude Include="src\Hazel\Renderer\Framebuffer.h" />
+    <ClInclude Include="src\Hazel\Renderer\IndexBuffer.h" />
     <ClInclude Include="src\Hazel\Renderer\Material.h" />
     <ClInclude Include="src\Hazel\Renderer\Mesh.h" />
+    <ClInclude Include="src\Hazel\Renderer\MeshFactory.h" />
+    <ClInclude Include="src\Hazel\Renderer\Pipeline.h" />
     <ClInclude Include="src\Hazel\Renderer\RenderCommandQueue.h" />
     <ClInclude Include="src\Hazel\Renderer\RenderPass.h" />
     <ClInclude Include="src\Hazel\Renderer\Renderer.h" />
     <ClInclude Include="src\Hazel\Renderer\Renderer2D.h" />
     <ClInclude Include="src\Hazel\Renderer\RendererAPI.h" />
+    <ClInclude Include="src\Hazel\Renderer\SceneEnvironment.h" />
     <ClInclude Include="src\Hazel\Renderer\SceneRenderer.h" />
     <ClInclude Include="src\Hazel\Renderer\Shader.h" />
     <ClInclude Include="src\Hazel\Renderer\ShaderUniform.h" />
     <ClInclude Include="src\Hazel\Renderer\Texture.h" />
-    <ClInclude Include="src\Hazel\Renderer\VertexArray.h" />
+    <ClInclude Include="src\Hazel\Renderer\VertexBuffer.h" />
     <ClInclude Include="src\Hazel\Scene\Components.h" />
     <ClInclude Include="src\Hazel\Scene\Entity.h" />
     <ClInclude Include="src\Hazel\Scene\Scene.h" />
@@ -279,33 +287,42 @@
     <ClCompile Include="src\Hazel\Core\UUID.cpp" />
     <ClCompile Include="src\Hazel\Core\Window.cpp" />
     <ClCompile Include="src\Hazel\Editor\EditorCamera.cpp" />
+    <ClCompile Include="src\Hazel\Editor\PhysicsSettingsWindow.cpp" />
     <ClCompile Include="src\Hazel\Editor\SceneHierarchyPanel.cpp" />
     <ClCompile Include="src\Hazel\ImGui\ImGuiBuild.cpp" />
     <ClCompile Include="src\Hazel\ImGui\ImGuiLayer.cpp" />
     <ClCompile Include="src\Hazel\ImGui\ImGuizmo.cpp" />
-    <ClCompile Include="src\Hazel\Platform\OpenGL\OpenGLBuffer.cpp" />
+    <ClCompile Include="src\Hazel\Physics\PXPhysicsWrappers.cpp" />
+    <ClCompile Include="src\Hazel\Physics\Physics.cpp" />
+    <ClCompile Include="src\Hazel\Physics\PhysicsLayer.cpp" />
+    <ClCompile Include="src\Hazel\Physics\PhysicsUtil.cpp" />
     <ClCompile Include="src\Hazel\Platform\OpenGL\OpenGLFramebuffer.cpp" />
+    <ClCompile Include="src\Hazel\Platform\OpenGL\OpenGLIndexBuffer.cpp" />
+    <ClCompile Include="src\Hazel\Platform\OpenGL\OpenGLPipeline.cpp" />
     <ClCompile Include="src\Hazel\Platform\OpenGL\OpenGLRenderPass.cpp" />
     <ClCompile Include="src\Hazel\Platform\OpenGL\OpenGLRendererAPI.cpp" />
     <ClCompile Include="src\Hazel\Platform\OpenGL\OpenGLShader.cpp" />
     <ClCompile Include="src\Hazel\Platform\OpenGL\OpenGLShaderUniform.cpp" />
     <ClCompile Include="src\Hazel\Platform\OpenGL\OpenGLTexture.cpp" />
-    <ClCompile Include="src\Hazel\Platform\OpenGL\OpenGLVertexArray.cpp" />
+    <ClCompile Include="src\Hazel\Platform\OpenGL\OpenGLVertexBuffer.cpp" />
     <ClCompile Include="src\Hazel\Platform\Windows\WindowsInput.cpp" />
     <ClCompile Include="src\Hazel\Platform\Windows\WindowsWindow.cpp" />
-    <ClCompile Include="src\Hazel\Renderer\Buffer.cpp" />
     <ClCompile Include="src\Hazel\Renderer\Camera.cpp" />
     <ClCompile Include="src\Hazel\Renderer\Framebuffer.cpp" />
+    <ClCompile Include="src\Hazel\Renderer\IndexBuffer.cpp" />
     <ClCompile Include="src\Hazel\Renderer\Material.cpp" />
     <ClCompile Include="src\Hazel\Renderer\Mesh.cpp" />
+    <ClCompile Include="src\Hazel\Renderer\MeshFactory.cpp" />
+    <ClCompile Include="src\Hazel\Renderer\Pipeline.cpp" />
     <ClCompile Include="src\Hazel\Renderer\RenderCommandQueue.cpp" />
     <ClCompile Include="src\Hazel\Renderer\RenderPass.cpp" />
     <ClCompile Include="src\Hazel\Renderer\Renderer.cpp" />
     <ClCompile Include="src\Hazel\Renderer\Renderer2D.cpp" />
+    <ClCompile Include="src\Hazel\Renderer\SceneEnvironment.cpp" />
     <ClCompile Include="src\Hazel\Renderer\SceneRenderer.cpp" />
     <ClCompile Include="src\Hazel\Renderer\Shader.cpp" />
     <ClCompile Include="src\Hazel\Renderer\Texture.cpp" />
-    <ClCompile Include="src\Hazel\Renderer\VertexArray.cpp" />
+    <ClCompile Include="src\Hazel\Renderer\VertexBuffer.cpp" />
     <ClCompile Include="src\Hazel\Scene\Entity.cpp" />
     <ClCompile Include="src\Hazel\Scene\Scene.cpp" />
     <ClCompile Include="src\Hazel\Scene\SceneCamera.cpp" />

@@ -5,8 +5,9 @@
 
 #include "Hazel/Core/Timestep.h"
 
-#include "Hazel/Renderer/VertexArray.h"
-#include "Hazel/Renderer/Buffer.h"
+#include "Hazel/Renderer/Pipeline.h"
+#include "Hazel/Renderer/IndexBuffer.h"
+#include "Hazel/Renderer/VertexBuffer.h"
 #include "Hazel/Renderer/Shader.h"
 #include "Hazel/Renderer/Material.h"
 
@@ -118,6 +119,7 @@ namespace Hazel {
 		uint32_t BaseIndex;
 		uint32_t MaterialIndex;
 		uint32_t IndexCount;
+		uint32_t VertexCount;
 
 		glm::mat4 Transform;
 		AABB BoundingBox;
@@ -129,6 +131,7 @@ namespace Hazel {
 	{
 	public:
 		Mesh(const std::string& filename);
+		Mesh(const std::vector<Vertex>& vertices, const std::vector<Index>& indices);
 		~Mesh();
 
 		void OnUpdate(Timestep ts);
@@ -137,11 +140,16 @@ namespace Hazel {
 		std::vector<Submesh>& GetSubmeshes() { return m_Submeshes; }
 		const std::vector<Submesh>& GetSubmeshes() const { return m_Submeshes; }
 
+		const std::vector<Vertex>& GetStaticVertices() const { return m_StaticVertices; }
+		const std::vector<Index>& GetIndices() const { return m_Indices; }
+
 		Ref<Shader> GetMeshShader() { return m_MeshShader; }
 		Ref<Material> GetMaterial() { return m_BaseMaterial; }
 		std::vector<Ref<MaterialInstance>> GetMaterials() { return m_Materials; }
 		const std::vector<Ref<Texture2D>>& GetTextures() const { return m_Textures; }
 		const std::string& GetFilePath() const { return m_FilePath; }
+
+		bool IsAnimated() const { return m_IsAnimated; }
 
 		const std::vector<Triangle> GetTriangleCache(uint32_t index) const { return m_TriangleCache.at(index); }
 	private:
@@ -166,7 +174,9 @@ namespace Hazel {
 		uint32_t m_BoneCount = 0;
 		std::vector<BoneInfo> m_BoneInfo;
 
-		Ref<VertexArray> m_VertexArray;
+		Ref<Pipeline> m_Pipeline;
+		Ref<VertexBuffer> m_VertexBuffer;
+		Ref<IndexBuffer> m_IndexBuffer;
 
 		std::vector<Vertex> m_StaticVertices;
 		std::vector<AnimatedVertex> m_AnimatedVertices;

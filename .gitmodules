@@ -4,14 +4,13 @@
 [submodule "Hazel/vendor/imgui"]
 	path = Hazel/vendor/imgui
 	url = https://github.com/TheCherno/imgui
-	branch = docking
+    branch = docking
 [submodule "Hazel/vendor/glm"]
 	path = Hazel/vendor/glm
 	url = https://github.com/g-truc/glm
 [submodule "Hazel/vendor/FastNoise"]
 	path = Hazel/vendor/FastNoise
-	url = https://github.com/Auburn/FastNoiseLite
-	branch = FastNoise-Legacy
+	url = https://github.com/Auburns/FastNoise
 [submodule "Hazel/vendor/Box2D"]
 	path = Hazel/vendor/Box2D
 	url = https://github.com/TheCherno/Box2D

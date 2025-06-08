@@ -19,6 +19,9 @@
 #include "imgui/imgui.h"
 
 #include "Hazel/Renderer/Renderer.h"
+#include "Hazel/Renderer/VertexBuffer.h"
+
+#include "Hazel/Physics/PhysicsUtil.h"
 
 #include <filesystem>
 
@@ -64,7 +67,7 @@ namespace Hazel {
 
 		virtual void write(const char* message) override
 		{
-			HZ_CORE_ERROR("Assimp error: {0}", message);
+			HZ_CORE_WARN("Assimp: {0}", message);
 		}
 	};
 
@@ -102,9 +105,10 @@ namespace Hazel {
 			submesh.BaseIndex = indexCount;
 			submesh.MaterialIndex = mesh->mMaterialIndex;
 			submesh.IndexCount = mesh->mNumFaces * 3;
+			submesh.VertexCount = mesh->mNumVertices;
 			submesh.MeshName = mesh->mName.C_Str();
 
-			vertexCount += mesh->mNumVertices;
+			vertexCount += submesh.VertexCount;
 			indexCount += submesh.IndexCount;
 
 			HZ_CORE_ASSERT(mesh->HasPositions(), "Meshes require positions.");
@@ -241,13 +245,12 @@ namespace Hazel {
 				aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, aiColor);
 
 				float shininess, metalness;
-				aiMaterial->Get(AI_MATKEY_SHININESS, shininess);
-				aiMaterial->Get(AI_MATKEY_REFLECTIVITY, metalness);
+				if (aiMaterial->Get(AI_MATKEY_SHININESS, shininess) != aiReturn_SUCCESS)
+					shininess = 80.0f; // Default value
 
-				metalness = 0.0f;
+				if (aiMaterial->Get(AI_MATKEY_REFLECTIVITY, metalness) != aiReturn_SUCCESS)
+					metalness = 0.0f;
 
-				// float roughness = 1.0f - shininess * 0.01f;
-				// roughness *= roughness;
 				float roughness = 1.0f - glm::sqrt(shininess / 100.0f);
 				HZ_MESH_LOG("    COLOR = {0}, {1}, {2}", aiColor.r, aiColor.g, aiColor.b);
 				HZ_MESH_LOG("    ROUGHNESS = {0}", roughness);
@@ -464,11 +467,11 @@ namespace Hazel {
 			HZ_MESH_LOG("------------------------");
 		}
 
-		m_VertexArray = VertexArray::Create();
+		VertexBufferLayout vertexLayout;
 		if (m_IsAnimated)
 		{
-			auto vb = VertexBuffer::Create(m_AnimatedVertices.data(), m_AnimatedVertices.size() * sizeof(AnimatedVertex));
-			vb->SetLayout({
+			m_VertexBuffer = VertexBuffer::Create(m_AnimatedVertices.data(), m_AnimatedVertices.size() * sizeof(AnimatedVertex));
+			vertexLayout = {
 				{ ShaderDataType::Float3, "a_Position" },
 				{ ShaderDataType::Float3, "a_Normal" },
 				{ ShaderDataType::Float3, "a_Tangent" },
@@ -476,24 +479,49 @@ namespace Hazel {
 				{ ShaderDataType::Float2, "a_TexCoord" },
 				{ ShaderDataType::Int4, "a_BoneIDs" },
 				{ ShaderDataType::Float4, "a_BoneWeights" },
-			});
-			m_VertexArray->AddVertexBuffer(vb);
+			};
 		}
 		else
 		{
-			auto vb = VertexBuffer::Create(m_StaticVertices.data(), m_StaticVertices.size() * sizeof(Vertex));
-			vb->SetLayout({
+			m_VertexBuffer = VertexBuffer::Create(m_StaticVertices.data(), m_StaticVertices.size() * sizeof(Vertex));
+			vertexLayout = {
 				{ ShaderDataType::Float3, "a_Position" },
 				{ ShaderDataType::Float3, "a_Normal" },
 				{ ShaderDataType::Float3, "a_Tangent" },
 				{ ShaderDataType::Float3, "a_Binormal" },
 				{ ShaderDataType::Float2, "a_TexCoord" },
-			});
-			m_VertexArray->AddVertexBuffer(vb);
+			};
 		}
 
-		auto ib = IndexBuffer::Create(m_Indices.data(), m_Indices.size() * sizeof(Index));
-		m_VertexArray->SetIndexBuffer(ib);
+		m_IndexBuffer = IndexBuffer::Create(m_Indices.data(), m_Indices.size() * sizeof(Index));
+
+		PipelineSpecification pipelineSpecification;
+		pipelineSpecification.Layout = vertexLayout;
+		m_Pipeline = Pipeline::Create(pipelineSpecification);
+	}
+
+	Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<Index>& indices)
+		: m_StaticVertices(vertices), m_Indices(indices), m_IsAnimated(false)
+	{
+		Submesh submesh;
+		submesh.BaseVertex = 0;
+		submesh.BaseIndex = 0;
+		submesh.IndexCount = indices.size() * 3;
+		submesh.Transform = glm::mat4(1.0F);
+		m_Submeshes.push_back(submesh);
+
+		m_VertexBuffer = VertexBuffer::Create(m_StaticVertices.data(), m_StaticVertices.size() * sizeof(Vertex));
+		m_IndexBuffer = IndexBuffer::Create(m_Indices.data(), m_Indices.size() * sizeof(Index));
+
+		PipelineSpecification pipelineSpecification;
+		pipelineSpecification.Layout = {
+			{ ShaderDataType::Float3, "a_Position" },
+			{ ShaderDataType::Float3, "a_Normal" },
+			{ ShaderDataType::Float3, "a_Tangent" },
+			{ ShaderDataType::Float3, "a_Binormal" },
+			{ ShaderDataType::Float2, "a_TexCoord" },
+		};
+		m_Pipeline = Pipeline::Create(pipelineSpecification);
 	}
 
 	Mesh::~Mesh()

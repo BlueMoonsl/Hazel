@@ -1,4 +1,4 @@
-﻿#include "hzpch.h"
+#include "hzpch.h"
 #include "Base.h"
 
 #include "Log.h"

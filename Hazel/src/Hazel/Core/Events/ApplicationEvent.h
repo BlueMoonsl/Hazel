@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Event.h"
 
@@ -6,7 +6,7 @@
 
 namespace Hazel {
 
-	// 窗口尺寸变化事件
+	// TODO: Should this store previous size?
 	class WindowResizeEvent : public Event
 	{
 	public:
@@ -29,7 +29,6 @@ namespace Hazel {
 		unsigned int m_Width, m_Height;
 	};
 
-	// 窗口关闭事件
 	class WindowCloseEvent : public Event
 	{
 	public:
@@ -39,7 +38,6 @@ namespace Hazel {
 		EVENT_CLASS_CATEGORY(EventCategoryApplication)
 	};
 
-	// App每帧触发事件
 	class AppTickEvent : public Event
 	{
 	public:
@@ -49,7 +47,6 @@ namespace Hazel {
 		EVENT_CLASS_CATEGORY(EventCategoryApplication)
 	};
 
-	// App更新事件
 	class AppUpdateEvent : public Event
 	{
 	public:
@@ -59,7 +56,6 @@ namespace Hazel {
 		EVENT_CLASS_CATEGORY(EventCategoryApplication)
 	};
 
-	// App渲染事件
 	class AppRenderEvent : public Event
 	{
 	public:

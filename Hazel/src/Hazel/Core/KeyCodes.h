@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 namespace Hazel
 {
@@ -195,7 +195,6 @@ namespace Hazel
 #define HZ_KEY_GRAVE_ACCENT    ::Hazel::Key::GraveAccent   /* ` */
 #define HZ_KEY_WORLD_1         ::Hazel::Key::World1        /* non-US #1 */
 #define HZ_KEY_WORLD_2         ::Hazel::Key::World2        /* non-US #2 */
-
 
 /* Function keys */
 #define HZ_KEY_ESCAPE          ::Hazel::Key::Escape
